@@ -135,25 +135,46 @@ export async function wingupMarkSeen(recipientId: string): Promise<void> {
   await invoke({ action: 'mark_seen', recipient_id: recipientId });
 }
 
-// ---- YouTube (test wiring) ----
-// Fire the two read tools and hand back the raw envelope so the caller can log
-// exactly what Composio returned. These don't throw — a failed tool resolves to
-// its error string so a smoke test can report per-tool status in one pass.
-export async function wingupYtChannel(): Promise<{ ok: boolean; channel?: unknown; error?: string }> {
-  try {
-    const { channel } = await invoke<{ channel: unknown }>({ action: 'yt_channel' });
-    return { ok: true, channel };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'yt_channel failed' };
-  }
+// ---- YouTube ----
+// One recent upload on the connected YouTube channel, flattened from the
+// Graph-style search result the backend returns (response_data.items[]).
+export interface YtVideo {
+  id: string;
+  title: string;
+  thumbnail?: string;
+  publishedAt?: string;
 }
-export async function wingupYtVideos(): Promise<{ ok: boolean; videos?: unknown; error?: string }> {
-  try {
-    const { videos } = await invoke<{ videos: unknown }>({ action: 'yt_videos' });
-    return { ok: true, videos };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'yt_videos failed' };
-  }
+// The Graph-style search result the YouTube list tool returns (only the fields
+// the home needs — everything is optional in practice).
+interface YtThumb { url?: string }
+interface YtThumbs { default?: YtThumb; medium?: YtThumb; high?: YtThumb; standard?: YtThumb }
+interface YtSearchItem {
+  id?: string | { videoId?: string };
+  snippet?: { title?: string; publishedAt?: string; publishTime?: string; thumbnails?: YtThumbs };
+}
+interface YtVideosResponse { response_data?: { items?: YtSearchItem[] }; items?: YtSearchItem[] }
+
+// Best medium thumbnail available, falling back through the standard sizes.
+function ytThumb(t?: YtThumbs): string | undefined {
+  return t?.medium?.url ?? t?.high?.url ?? t?.default?.url ?? t?.standard?.url;
+}
+export async function wingupYtVideos(): Promise<{ data: YtVideo[] }> {
+  const { videos } = await invoke<{ videos: YtVideosResponse }>({ action: 'yt_videos' });
+  const items = videos?.response_data?.items ?? videos?.items ?? [];
+  const data: YtVideo[] = (Array.isArray(items) ? items : [])
+    .map((it): YtVideo => ({
+      id: typeof it.id === 'string' ? it.id : (it.id?.videoId ?? ''),
+      title: it.snippet?.title ?? '',
+      thumbnail: ytThumb(it.snippet?.thumbnails),
+      publishedAt: it.snippet?.publishedAt ?? it.snippet?.publishTime,
+    }))
+    .filter((v) => v.id);
+  return { data };
+}
+// The connected channel's headline stats (statistics + snippet), raw from Composio.
+export async function wingupYtChannel(): Promise<{ channel: unknown }> {
+  const { channel } = await invoke<{ channel: unknown }>({ action: 'yt_channel' });
+  return { channel };
 }
 
 // True when an image can actually be posted to Instagram: a real raster image,

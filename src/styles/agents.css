@@ -1670,6 +1670,15 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .wingup-feed-st { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; color: var(--wg-muted); font-size: var(--fs-caption); font-weight: 600; }
 .wingup-feed-st b { color: #cdd6e0; }
 
+/* Home content grids — three square tiles per row (Instagram posts, then
+   YouTube videos), matching the dashboard layout. */
+.wingup-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 2px; }
+.wingup-tile { position: relative; aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; display: block; text-decoration: none; background: #141416 center/cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.wingup-tile:active { opacity: 0.8; }
+.wingup-tile.empty { background: rgba(255, 255, 255, 0.03); box-shadow: none; }
+.wingup-tile-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 8px 6px; font-size: var(--fs-caption); line-height: 1.25; color: #fff; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; background: linear-gradient(transparent, rgba(0, 0, 0, 0.78)); }
+.wingup-tile-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 34px; height: 34px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); display: grid; place-items: center; color: #fff; font-size: 12px; padding-left: 2px; }
+
 /* More tab — secondary destinations as a list */
 .wingup-more-list { display: flex; flex-direction: column; gap: 11px; padding-top: 6px; }
 .wingup-more-row { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer; font: inherit;
