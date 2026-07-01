@@ -3,7 +3,6 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { CONNECTORS, CONNECT_API } from './connectorData';
 import Login from './Login';
-import Landing from './Landing';
 import { IconConnectors, IconSettings, IconTrash, IconX, IconLogout, IconArrowLeft } from './icons';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -62,9 +61,6 @@ const REQUIRE_LOGIN = true;
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  // Logged-out web visitors land on the chatbox page first; the native app
-  // skips straight to sign-in. "Sign in" (or sending a prompt) reveals Login.
-  const [showLogin, setShowLogin] = useState(() => Capacitor.getPlatform() !== 'web');
 
   // ---- Auth bootstrap ----
   useEffect(() => {
@@ -379,7 +375,7 @@ export default function App() {
       </div>
     );
   }
-  if (!session) return showLogin ? <Login /> : <Landing onSignIn={() => setShowLogin(true)} />;
+  if (!session) return <Login />;
 
   const isGuest = !!session.user.is_anonymous;
   const title = view === 'connectors' ? 'Connectors' : view === 'settings' ? 'Settings' : 'Go Farther';
