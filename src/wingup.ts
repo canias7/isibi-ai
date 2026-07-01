@@ -171,10 +171,37 @@ export async function wingupYtVideos(): Promise<{ data: YtVideo[] }> {
     .filter((v) => v.id);
   return { data };
 }
-// The connected channel's headline stats (statistics + snippet), raw from Composio.
-export async function wingupYtChannel(): Promise<{ channel: unknown }> {
-  const { channel } = await invoke<{ channel: unknown }>({ action: 'yt_channel' });
-  return { channel };
+// The connected channel's headline stats, flattened for the home card.
+export interface YtChannel {
+  title: string;
+  handle?: string;
+  thumbnail?: string;
+  subscribers?: number;
+  views?: number;
+  videos?: number;
+  since?: string;
+}
+interface YtChannelRaw {
+  snippet?: { title?: string; customUrl?: string; publishedAt?: string; thumbnails?: YtThumbs };
+  statistics?: { subscriberCount?: string; viewCount?: string; videoCount?: string };
+}
+const toNum = (v?: string): number | undefined =>
+  (v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : undefined);
+export async function wingupYtChannel(): Promise<{ channel: YtChannel | null }> {
+  const { channel } = await invoke<{ channel: { channels?: YtChannelRaw[]; response_data?: { items?: YtChannelRaw[] } } }>({ action: 'yt_channel' });
+  const c = channel?.channels?.[0] ?? channel?.response_data?.items?.[0];
+  if (!c) return { channel: null };
+  return {
+    channel: {
+      title: c.snippet?.title ?? '',
+      handle: c.snippet?.customUrl,
+      thumbnail: ytThumb(c.snippet?.thumbnails),
+      subscribers: toNum(c.statistics?.subscriberCount),
+      views: toNum(c.statistics?.viewCount),
+      videos: toNum(c.statistics?.videoCount),
+      since: c.snippet?.publishedAt ? c.snippet.publishedAt.slice(0, 4) : undefined,
+    },
+  };
 }
 
 // True when an image can actually be posted to Instagram: a real raster image,

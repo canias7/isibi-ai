@@ -1642,6 +1642,15 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
   border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 22px; padding: 19px;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
 }
+/* YouTube stats card — a distinct dark card (no navy), with a red accent so it
+   reads as separate from the Instagram card. */
+.wingup-hero-stat.yt {
+  background: linear-gradient(135deg, #171719, #201013);
+  border-color: rgba(255, 255, 255, 0.1);
+  margin-top: 20px;
+}
+.wingup-hero-stat.yt .wingup-hero-k { display: flex; align-items: center; gap: 8px; }
+.wingup-yt-dot { width: 9px; height: 9px; border-radius: 2px; background: #ff3b30; box-shadow: 0 0 10px rgba(255, 59, 48, 0.6); }
 .wingup-hero-k { font-size: var(--fs-caption); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #e6e8ec; }
 .wingup-hero-big { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; margin-top: 5px; line-height: 1.05; }
 .wingup-hero-sub { color: var(--wg-muted); font-size: var(--fs-footnote); margin-top: 3px; }
