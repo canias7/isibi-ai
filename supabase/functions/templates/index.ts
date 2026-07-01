@@ -7,7 +7,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // App-level outcomes return HTTP 200 { error }; only infra failures stay 5xx.
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
-const MODEL = "claude-sonnet-4-6";  // email building is structured HTML + copy; Sonnet handles it well at ~40% lower cost
+const MODEL = "claude-sonnet-5";  // email building is structured HTML + copy; Sonnet 5 for the quality bump, same rate card as 4.6
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -45,7 +45,9 @@ async function verifyUser(token: string | null): Promise<string | null> {
 // deno-lint-ignore no-explicit-any
 async function callClaude(system: string, messages: { role: string; content: string }[], maxTokens: number, tools?: any[], timeoutMs = 55000): Promise<string | null> {
   // deno-lint-ignore no-explicit-any
-  const reqBody: Record<string, any> = { model: MODEL, max_tokens: maxTokens, system, messages };
+  // Disable adaptive thinking (Sonnet 5 defaults it on): this is structured HTML + delimited
+  // copy, not a reasoning task — thinking would bill as output and eat the max_tokens budget.
+  const reqBody: Record<string, any> = { model: MODEL, max_tokens: maxTokens, thinking: { type: "disabled" }, system, messages };
   if (tools && tools.length) reqBody.tools = tools;
   const tag = tools && tools.length ? "withtools" : "plain";
   // Retry transient Anthropic errors (overload / rate-limit / 5xx / network blip) with a
