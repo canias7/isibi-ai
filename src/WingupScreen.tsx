@@ -311,6 +311,9 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
   const [ytVideos, setYtVideos] = useState<YtVideo[] | null>(null);
   const [ytVideosErr, setYtVideosErr] = useState('');
 
+  // Which platform's stat card sits on top of the home deck (chosen via the dots).
+  const [activeCard, setActiveCard] = useState<'instagram' | 'youtube'>('instagram');
+
   const trapRef = useRef<HTMLDivElement>(null);
 
   // Bottom-bar indicator dot: measure the active tab's centre so the dot slides
@@ -720,79 +723,110 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     const num = (n?: number | null) => (n != null && Number.isFinite(n) ? n.toLocaleString() : '—');
     const feed = (media ?? []).slice(0, 5);
 
+    // The stat cards stack into one deck slot; the dots pick which sits on top.
+    const platforms: ('instagram' | 'youtube')[] = [];
+    if (igConnected) platforms.push('instagram');
+    if (ytConnected) platforms.push('youtube');
+    const active = platforms.includes(activeCard) ? activeCard : (platforms[0] ?? 'instagram');
+    const deckCls = (p: 'instagram' | 'youtube') => `wingup-deck-card${active === p ? ' front' : ' back'}`;
+
     return (
       <div className="wingup-scroll">
         <div className="wingup-home">
-          {igConnected && (<>
-          {account?.username && (
+          {active === 'instagram' && account?.username && (
             <div className="wingup-conn"><span className="wingup-conn-dot" aria-hidden="true" />Connected · <span className="wingup-conn-h">@{account.username}</span></div>
           )}
+          {active === 'youtube' && ytChannel?.handle && (
+            <div className="wingup-conn"><span className="wingup-conn-dot yt" aria-hidden="true" />YouTube · <span className="wingup-conn-h">{ytChannel.handle}</span></div>
+          )}
 
-          {/* Reach hero — the headline metric, trend, and a sparkline of its series. */}
-          <div className="wingup-hero-stat">
-            <div className="wingup-hero-k">{reachLabel}{reach?.period ? ` · ${reach.period}` : ''}</div>
-            <div className="wingup-hero-big">{insights === null ? '…' : num(reachVal)}</div>
-            <div className="wingup-hero-sub">
-              {trend != null
-                ? <><span className={trend >= 0 ? 'wingup-up' : 'wingup-down'}>{trend >= 0 ? '▲' : '▼'} {Math.abs(trend)}%</span> vs start of period</>
-                : (insightsErr ? insightsErr : 'Your account at a glance')}
+          {/* Stat-card deck — one slot; the inactive platform's card peeks behind. */}
+          <div className="wingup-deck">
+            {igConnected && (
+              <div className={deckCls('instagram')} aria-hidden={active !== 'instagram'}>
+                <div className="wingup-hero-stat">
+                  <div className="wingup-hero-k">{reachLabel}{reach?.period ? ` · ${reach.period}` : ''}</div>
+                  <div className="wingup-hero-big">{insights === null ? '…' : num(reachVal)}</div>
+                  <div className="wingup-hero-sub">
+                    {trend != null
+                      ? <><span className={trend >= 0 ? 'wingup-up' : 'wingup-down'}>{trend >= 0 ? '▲' : '▼'} {Math.abs(trend)}%</span> vs start of period</>
+                      : (insightsErr ? insightsErr : 'Your account at a glance')}
+                  </div>
+                  {series.length >= 2 && (
+                    <div className="wingup-spark" aria-hidden="true">
+                      {series.slice(-7).map((v, i) => (
+                        <i key={i} style={{ height: `${Math.max(8, max ? (v / max) * 100 : 8)}%` }} />
+                      ))}
+                    </div>
+                  )}
+                  <div className="wingup-chips3">
+                    <div className="wingup-chip3"><div className="v">{num(account?.followers_count)}</div><div className="l">Followers</div></div>
+                    <div className="wingup-chip3"><div className="v">{num(account?.media_count)}</div><div className="l">Posts</div></div>
+                    <div className="wingup-chip3"><div className="v">{num(account?.follows_count)}</div><div className="l">Following</div></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {ytConnected && (
+              <div className={deckCls('youtube')} aria-hidden={active !== 'youtube'}>
+                <div className="wingup-hero-stat yt">
+                  <div className="wingup-hero-k"><span className="wingup-yt-dot" aria-hidden="true" />YouTube</div>
+                  <div className="wingup-hero-big">{ytChannel === null ? '…' : num(ytChannel.subscribers)}</div>
+                  <div className="wingup-hero-sub">
+                    subscribers{ytChannel?.handle ? ` · ${ytChannel.handle}` : (ytChannel?.title ? ` · ${ytChannel.title}` : '')}
+                  </div>
+                  <div className="wingup-chips3">
+                    <div className="wingup-chip3"><div className="v">{num(ytChannel?.views)}</div><div className="l">Views</div></div>
+                    <div className="wingup-chip3"><div className="v">{num(ytChannel?.videos)}</div><div className="l">Videos</div></div>
+                    <div className="wingup-chip3"><div className="v">{ytChannel?.since ?? '—'}</div><div className="l">Since</div></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Dots — pick which card is on top (only when both are connected). */}
+          {platforms.length > 1 && (
+            <div className="wingup-deck-dots" role="tablist">
+              {platforms.map((p) => (
+                <button key={p} type="button" role="tab" aria-selected={active === p}
+                  className={`wingup-ddot${active === p ? ' on' : ''}${p === 'youtube' ? ' yt' : ''}`}
+                  aria-label={p === 'instagram' ? 'Instagram' : 'YouTube'}
+                  onClick={() => { void tap(); setActiveCard(p); }} />
+              ))}
             </div>
-            {series.length >= 2 && (
-              <div className="wingup-spark" aria-hidden="true">
-                {series.slice(-7).map((v, i) => (
-                  <i key={i} style={{ height: `${Math.max(8, max ? (v / max) * 100 : 8)}%` }} />
+          )}
+
+          {/* Recent Instagram posts — shown while the Instagram card is on top. */}
+          {active === 'instagram' && (<>
+            <div className="wingup-sectionh">
+              <span className="wingup-sectionh-t">Recent posts</span>
+              <button type="button" className="wingup-sectionh-a" onClick={() => { void tap(); setView('posts'); }}>All →</button>
+            </div>
+            {media === null ? (
+              <div className="wingup-loading"><span className="route-spin" aria-hidden="true" /><p className="wingup-loading-msg">Loading your posts…</p></div>
+            ) : mediaErr ? (
+              <p className="wingup-note">{mediaErr}</p>
+            ) : feed.length === 0 ? (
+              <p className="wingup-note">No posts yet — tap ＋ to make your first one.</p>
+            ) : (
+              <div className="wingup-grid3">
+                {feed.slice(0, 3).map((m) => (
+                  <a className="wingup-tile" key={m.id} href={m.permalink} target="_blank" rel="noreferrer"
+                    style={{ backgroundImage: (m.thumbnail_url || m.media_url) ? `url(${m.thumbnail_url || m.media_url})` : undefined }}
+                    title={m.caption ? String(m.caption) : mediaTypeLabel(m.media_type)}>
+                    <span className="wingup-tile-cap">{m.caption ? String(m.caption) : mediaTypeLabel(m.media_type)}</span>
+                  </a>
+                ))}
+                {Array.from({ length: Math.max(0, 3 - Math.min(feed.length, 3)) }).map((_, i) => (
+                  <span className="wingup-tile empty" key={`ige${i}`} aria-hidden="true" />
                 ))}
               </div>
             )}
-            <div className="wingup-chips3">
-              <div className="wingup-chip3"><div className="v">{num(account?.followers_count)}</div><div className="l">Followers</div></div>
-              <div className="wingup-chip3"><div className="v">{num(account?.media_count)}</div><div className="l">Posts</div></div>
-              <div className="wingup-chip3"><div className="v">{num(account?.follows_count)}</div><div className="l">Following</div></div>
-            </div>
-          </div>
-
-          {/* Recent posts feed. */}
-          <div className="wingup-sectionh">
-            <span className="wingup-sectionh-t">Recent posts</span>
-            <button type="button" className="wingup-sectionh-a" onClick={() => { void tap(); setView('posts'); }}>All →</button>
-          </div>
-          {media === null ? (
-            <div className="wingup-loading"><span className="route-spin" aria-hidden="true" /><p className="wingup-loading-msg">Loading your posts…</p></div>
-          ) : mediaErr ? (
-            <p className="wingup-note">{mediaErr}</p>
-          ) : feed.length === 0 ? (
-            <p className="wingup-note">No posts yet — tap ＋ to make your first one.</p>
-          ) : (
-            <div className="wingup-grid3">
-              {feed.slice(0, 3).map((m) => (
-                <a className="wingup-tile" key={m.id} href={m.permalink} target="_blank" rel="noreferrer"
-                  style={{ backgroundImage: (m.thumbnail_url || m.media_url) ? `url(${m.thumbnail_url || m.media_url})` : undefined }}
-                  title={m.caption ? String(m.caption) : mediaTypeLabel(m.media_type)}>
-                  <span className="wingup-tile-cap">{m.caption ? String(m.caption) : mediaTypeLabel(m.media_type)}</span>
-                </a>
-              ))}
-              {Array.from({ length: Math.max(0, 3 - Math.min(feed.length, 3)) }).map((_, i) => (
-                <span className="wingup-tile empty" key={`ige${i}`} aria-hidden="true" />
-              ))}
-            </div>
-          )}
           </>)}
 
-          {/* YouTube — its own stats card, separate from the Instagram one. */}
-          {ytConnected && (<>
-            <div className="wingup-hero-stat yt">
-              <div className="wingup-hero-k"><span className="wingup-yt-dot" aria-hidden="true" />YouTube</div>
-              <div className="wingup-hero-big">{ytChannel === null ? '…' : num(ytChannel.subscribers)}</div>
-              <div className="wingup-hero-sub">
-                subscribers{ytChannel?.handle ? ` · ${ytChannel.handle}` : (ytChannel?.title ? ` · ${ytChannel.title}` : '')}
-              </div>
-              <div className="wingup-chips3">
-                <div className="wingup-chip3"><div className="v">{num(ytChannel?.views)}</div><div className="l">Views</div></div>
-                <div className="wingup-chip3"><div className="v">{num(ytChannel?.videos)}</div><div className="l">Videos</div></div>
-                <div className="wingup-chip3"><div className="v">{ytChannel?.since ?? '—'}</div><div className="l">Since</div></div>
-              </div>
-            </div>
-
+          {/* Recent YouTube uploads — shown while the YouTube card is on top. */}
+          {active === 'youtube' && (<>
             <div className="wingup-sectionh">
               <span className="wingup-sectionh-t">YouTube videos</span>
             </div>
