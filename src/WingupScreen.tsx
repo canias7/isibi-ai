@@ -797,8 +797,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             </div>
           )}
 
-          {/* Recent Instagram posts — shown while the Instagram card is on top. */}
-          {active === 'instagram' && (<>
+          {/* Recent Instagram posts — always on the page; only the deck card changes. */}
+          {igConnected && (<>
             <div className="wingup-sectionh">
               <span className="wingup-sectionh-t">Recent posts</span>
               <button type="button" className="wingup-sectionh-a" onClick={() => { void tap(); setView('posts'); }}>All →</button>
@@ -825,8 +825,8 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
             )}
           </>)}
 
-          {/* Recent YouTube uploads — shown while the YouTube card is on top. */}
-          {active === 'youtube' && (<>
+          {/* Recent YouTube uploads — always on the page; only the deck card changes. */}
+          {ytConnected && (<>
             <div className="wingup-sectionh">
               <span className="wingup-sectionh-t">YouTube videos</span>
             </div>
