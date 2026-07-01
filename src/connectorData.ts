@@ -99,7 +99,6 @@ export const CONNECTORS: Connector[] = [
   { id: 'youtube', name: 'YouTube', logo: si('youtube'), color: '#FF0000', desc: 'Videos & channels' },
   { id: 'instagram', name: 'Instagram', logo: si('instagram'), color: '#E4405F', desc: 'Posts & media' },
   { id: 'twitter', name: 'X (Twitter)', logo: si('x'), color: '#000000', desc: 'Post & read tweets' },
-  { id: 'googleads', name: 'Google Ads', logo: si('googleads'), color: '#4285F4', desc: 'Campaigns & audiences' },
   { id: 'spotify', name: 'Spotify', logo: si('spotify'), color: '#1DB954', desc: 'Music & playlists' },
   { id: 'salesforce', name: 'Salesforce', logo: fav('salesforce.com'), color: '#00A1E0', desc: 'CRM records & leads' },
   { id: 'pipedrive', name: 'Pipedrive', logo: fav('pipedrive.com'), color: '#017737', desc: 'Deals & contacts' },

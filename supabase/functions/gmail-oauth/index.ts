@@ -56,7 +56,6 @@ const TOOLKIT: Record<string, string> = {
   youtube: "youtube",
   instagram: "instagram",
   twitter: "twitter",
-  googleads: "googleads",
   spotify: "spotify",
   salesforce: "salesforce",
   pipedrive: "pipedrive",
