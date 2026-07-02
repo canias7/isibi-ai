@@ -464,6 +464,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [whAddOpen, setWhAddOpen] = useState(false); // the Resend-style "Add endpoint" modal
   const [whDeliv, setWhDeliv] = useState<Record<string, WebhookDelivery[]>>({}); // endpoint id -> recent deliveries
   const [whDelivBusy, setWhDelivBusy] = useState<string | null>(null); // endpoint whose deliveries are loading
+  const [whRmArm, setWhRmArm] = useState('');   // webhook Remove armed (id) — second tap confirms
+  const [autoRmArm, setAutoRmArm] = useState(''); // automation Delete armed (id)
+  const armTimerRef = useRef<number | null>(null); // shared disarm timer for wh/auto destructive actions
   const [campDomain, setCampDomain] = useState(''); // '' = mailbox; else a verified self-hosted domain
   const [campFromName, setCampFromName] = useState(''); // display name when sending built-in or from a domain
   const [campFromLocal, setCampFromLocal] = useState('news'); // local-part of the From address when sending from a domain
@@ -528,6 +531,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
       mountedRef.current = false;
       if (domRmTimerRef.current) { clearTimeout(domRmTimerRef.current); domRmTimerRef.current = null; }
       if (relTimerRef.current) { clearTimeout(relTimerRef.current); relTimerRef.current = null; }
+      if (armTimerRef.current) { clearTimeout(armTimerRef.current); armTimerRef.current = null; }
     };
   }, []);
   const builderGenRef = useRef(0); // bumped on every AI-builder session change; an in-flight job whose gen no longer matches is dropped (never applied/saved to the wrong template)
@@ -1172,6 +1176,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // Plain text -> simple HTML (escape + line breaks); {{name}} survives for the
   // backend to personalize. Recipients: one per line/comma, "email" or "Name <email>".
   const campToHtml = (t: string) => t.split('\n').map((l) => l.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('<br>');
+  // Inverse of campToHtml — turn a stored step body back into the plain text the
+  // editor's textarea expects, so editing + re-saving doesn't double-escape it
+  // (`&` → `&amp;amp;`, newlines → literal `<br>`) on every round-trip.
+  const htmlToPlain = (h: string) => h.replace(/<br\s*\/?>/gi, '\n').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   const parseRecips = (t: string) => t.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).map((tok) => {
     const m = tok.match(/^(.*?)\s*<([^>]+)>$/);
     return m ? { email: m[2].trim(), name: m[1].trim() || undefined } : { email: tok };
@@ -1510,7 +1518,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
 
   // ---- Webhooks ----
-  const loadAutomations = () => listAutomations().then((a) => { if (mountedRef.current) setAutoList(a); });
+  const loadAutomations = () => listAutomations().then((a) => { if (mountedRef.current) setAutoList(a); }).catch(() => { if (mountedRef.current) setNote('Couldn’t load your automations — reopen the tab to retry.'); });
   const openAutoNew = () => {
     tap(); setAutoNew(true); setAutoEditId(null); setAutoErr('');
     setAutoName(''); setAutoTag(''); setAutoDomain(''); setAutoApp(connApps.includes('gmail') ? 'gmail' : 'outlook');
@@ -1519,16 +1527,27 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const openAutoEdit = (a: Automation) => {
     tap(); setAutoNew(true); setAutoEditId(a.id); setAutoErr('');
     setAutoName(a.name); setAutoTag(a.trigger_tag);
-    setAutoDomain(a.send_via === 'self' && a.from_email ? a.from_email.split('@')[1] : '');
+    // Only preselect the from-domain if it's STILL verified — otherwise the
+    // <select> would show a value matching no option (blank) while the from
+    // fields display a dead domain, and Save would fail confusingly.
+    const dom = a.send_via === 'self' && a.from_email ? a.from_email.split('@')[1] : '';
+    const domOk = dom && domains.some((d) => d.domain === dom && d.verified);
+    setAutoDomain(domOk ? dom : '');
     setAutoApp(a.app === 'outlook' ? 'outlook' : 'gmail');
-    setAutoFromLocal(a.send_via === 'self' && a.from_email ? a.from_email.split('@')[0] : 'news');
+    setAutoFromLocal(domOk && a.from_email ? a.from_email.split('@')[0] : 'news');
     setAutoFromName(a.from_name || '');
-    setAutoSteps(a.steps?.length ? a.steps.map((s) => ({ delay_days: s.delay_days, subject: s.subject, body: s.body })) : [{ delay_days: 0, subject: '', body: '' }]);
+    // Decode stored HTML step bodies back to plain text for the textarea.
+    setAutoSteps(a.steps?.length ? a.steps.map((s) => ({ delay_days: s.delay_days, subject: s.subject, body: htmlToPlain(s.body) })) : [{ delay_days: 0, subject: '', body: '' }]);
   };
   const setStep = (i: number, patch: Partial<AutomationStep>) => setAutoSteps((arr) => arr.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   const addStep = () => { tap(); setAutoSteps((arr) => [...arr, { delay_days: 3, subject: '', body: '' }]); };
   const removeStep = (i: number) => { tap(); setAutoSteps((arr) => (arr.length > 1 ? arr.filter((_, j) => j !== i) : arr)); };
   const saveAuto = async () => {
+    // A half-filled step (subject but no body, or vice versa) is almost always a
+    // mistake — warn instead of silently dropping it on save.
+    if (autoSteps.some((s) => (s.subject.trim() && !s.body.trim()) || (!s.subject.trim() && s.body.trim()))) {
+      setAutoErr('Every step needs both a subject and a message (or remove the empty one).'); return;
+    }
     const steps = autoSteps.map((s) => ({ delay_days: Math.max(0, Math.round(Number(s.delay_days) || 0)), subject: s.subject.trim(), body: campToHtml(s.body.trim()) })).filter((s) => s.subject && s.body);
     if (!autoName.trim() || !autoTag.trim() || !steps.length) { setAutoErr('Add a name, a trigger tag, and at least one step with a subject and message.'); return; }
     setAutoBusy(true); setAutoErr('');
@@ -1546,9 +1565,27 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     } catch { if (mountedRef.current) setAutoErr('Something went wrong — try again.'); }
     finally { if (mountedRef.current) setAutoBusy(false); }
   };
-  const toggleAuto = async (a: Automation) => { tap(); await toggleAutomation(a.id, !a.enabled).catch(() => {}); if (mountedRef.current) await loadAutomations(); };
-  const removeAuto = async (id: string) => { tap(); await removeAutomation(id).catch(() => {}); if (mountedRef.current) await loadAutomations(); };
-  const loadWebhooks = () => listWebhooks().then((w) => { if (mountedRef.current) setWebhooks(w); });
+  const toggleAuto = async (a: Automation) => {
+    tap();
+    try { await toggleAutomation(a.id, !a.enabled); if (mountedRef.current) await loadAutomations(); }
+    catch { if (mountedRef.current) { setNote(`Couldn’t ${a.enabled ? 'pause' : 'resume'} that automation — try again.`); await loadAutomations(); } }
+  };
+  // Delete is destructive (kills an active drip sequence) — arm on first tap.
+  const armRemoveAuto = (id: string) => {
+    tap();
+    if (autoRmArm === id) {
+      if (armTimerRef.current) { clearTimeout(armTimerRef.current); armTimerRef.current = null; }
+      setAutoRmArm(''); removeAuto(id); return;
+    }
+    setAutoRmArm(id); setWhRmArm('');
+    if (armTimerRef.current) clearTimeout(armTimerRef.current);
+    armTimerRef.current = window.setTimeout(() => { if (mountedRef.current) setAutoRmArm(''); }, 3500);
+  };
+  const removeAuto = async (id: string) => {
+    try { await removeAutomation(id); if (mountedRef.current) await loadAutomations(); }
+    catch { if (mountedRef.current) setNote('Couldn’t delete that automation — try again.'); }
+  };
+  const loadWebhooks = () => listWebhooks().then((w) => { if (mountedRef.current) setWebhooks(w); }).catch(() => { if (mountedRef.current) setNote('Couldn’t load your webhook endpoints — reopen the tab to retry.'); });
   const addWh = async () => {
     const url = whNew.trim();
     if (!url || whBusy) return;
@@ -1570,7 +1607,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     setWhDelivBusy(id);
     try { const d = await listWebhookDeliveries(id); if (mountedRef.current) setWhDeliv((m) => ({ ...m, [id]: d })); }
     catch { /* ignore */ }
-    finally { if (mountedRef.current) setWhDelivBusy(null); }
+    // Only clear if THIS endpoint's load is still the current one — an overlapping
+    // load for another endpoint must not kill its spinner.
+    finally { if (mountedRef.current) setWhDelivBusy((v) => (v === id ? null : v)); }
   };
   // Toggle an event in the "add endpoint" form's selection (kept non-empty).
   const toggleNewWhEvent = (id: string) => {
@@ -1588,15 +1627,25 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     try { await setWebhookEvents(w.id, stored); } catch { /* reload will resync */ }
     if (mountedRef.current) await loadWebhooks();
   };
-  const removeWh = async (id: string) => {
+  // Remove deletes the endpoint AND its signing secret (unrecoverable) — arm first.
+  const armRemoveWh = (id: string) => {
     tap();
-    await removeWebhook(id).catch(() => {});
-    if (mountedRef.current) await loadWebhooks();
+    if (whRmArm === id) {
+      if (armTimerRef.current) { clearTimeout(armTimerRef.current); armTimerRef.current = null; }
+      setWhRmArm(''); removeWh(id); return;
+    }
+    setWhRmArm(id); setAutoRmArm('');
+    if (armTimerRef.current) clearTimeout(armTimerRef.current);
+    armTimerRef.current = window.setTimeout(() => { if (mountedRef.current) setWhRmArm(''); }, 3500);
+  };
+  const removeWh = async (id: string) => {
+    try { await removeWebhook(id); if (mountedRef.current) { setWhOpen((o) => (o === id ? null : o)); await loadWebhooks(); } }
+    catch { if (mountedRef.current) setNote('Couldn’t remove that endpoint — try again.'); }
   };
   const toggleWh = async (w: WebhookEndpoint) => {
     tap();
-    await toggleWebhook(w.id, !w.enabled).catch(() => {});
-    if (mountedRef.current) await loadWebhooks();
+    try { await toggleWebhook(w.id, !w.enabled); if (mountedRef.current) await loadWebhooks(); }
+    catch { if (mountedRef.current) { setNote(`Couldn’t ${w.enabled ? 'pause' : 'resume'} that endpoint — try again.`); await loadWebhooks(); } }
   };
   const sendWhTest = async (id: string) => {
     tap(); setWhTest((m) => ({ ...m, [id]: 'Sending…' }));
@@ -2758,7 +2807,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                                     })}
                                   </ul>
                                 ) : (
-                                  <p className="ag-foot ag-wh-deliv-empty">{whDelivBusy === w.id ? 'Loading…' : whDeliv[w.id] ? 'No deliveries yet — send a test or trigger an event.' : ''}</p>
+                                  <p className="ag-foot ag-wh-deliv-empty">{whDelivBusy === w.id ? 'Loading…' : whDeliv[w.id] ? 'No deliveries yet. Real events (a send, a contact change, a bounce) show up here — the “Send test” result appears above, not in this list.' : ''}</p>
                                 )}
                               </div>
                               <p className="ag-foot ag-dom-hint">Verify each POST: <code>sendra-signature: v1=&lt;hex&gt;</code> is the HMAC-SHA256 of <code>{'{sendra-timestamp}.{raw body}'}</code> keyed with this secret.</p>
@@ -2766,7 +2815,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                               <div className="ag-dom-actions">
                                 <button className="ag-send-btn" onClick={async () => { await sendWhTest(w.id); loadWhDeliveries(w.id); }}>Send test</button>
                                 <button className="ag-send-btn ghost" onClick={() => toggleWh(w)}>{w.enabled ? 'Pause' : 'Resume'}</button>
-                                <button className="ag-send-btn ghost" onClick={() => removeWh(w.id)}>Remove</button>
+                                <button className={`ag-send-btn ghost danger${whRmArm === w.id ? ' armed' : ''}`} aria-live="polite" onClick={() => armRemoveWh(w.id)}>{whRmArm === w.id ? 'Tap again to remove' : 'Remove'}</button>
                               </div>
                             </div>
                           )}
@@ -2865,7 +2914,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                             <div className="ag-dom-actions">
                               <button className="ag-send-btn" onClick={() => toggleAuto(a)}>{a.enabled ? 'Pause' : 'Enable'}</button>
                               <button className="ag-send-btn ghost" onClick={() => openAutoEdit(a)}>Edit</button>
-                              <button className="ag-send-btn ghost" onClick={() => removeAuto(a.id)}>Delete</button>
+                              <button className={`ag-send-btn ghost danger${autoRmArm === a.id ? ' armed' : ''}`} aria-live="polite" onClick={() => armRemoveAuto(a.id)}>{autoRmArm === a.id ? 'Tap again to delete' : 'Delete'}</button>
                             </div>
                           </div>
                         </div>

@@ -190,8 +190,18 @@ async function runDue(): Promise<{ enrolled: number; sent: number; done: number 
     } else {
       ok = (await sendOne(uid, a.app || "gmail", email, stepObj.subject, html)).ok;
     }
-    if (ok) sent++;
     budget--;
+
+    if (!ok) {
+      // The send FAILED — do NOT advance the step, or the contact silently never
+      // gets this email. Leave the enrollment on this step and retry in an hour;
+      // a hard-bounced address gets suppressed by then, so the isSuppressed check
+      // at the top of the loop naturally stops a permanently-failing retry.
+      await db(`automation_enrollments?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ next_run_at: new Date(Date.now() + 3600 * 1000).toISOString(), updated_at: new Date().toISOString() }) });
+      await sleep(a.send_via === "self" ? 500 : 700);
+      continue;
+    }
+    sent++;
 
     // Advance: schedule the next step, or finish.
     const nextStep = step + 1;
