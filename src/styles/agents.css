@@ -81,7 +81,11 @@
   .ag-mailwrap.ag-split { display: flex; flex: 1; min-height: 0; }
   .ag-split > .ag-stage { flex: 0 0 420px; width: 420px; border-right: 1px solid rgba(255, 255, 255, 0.08); }
   .ag-split-read { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-  .ag-split-read .ag-stage { flex: 1; }
+  .ag-split-read .ag-stage { flex: 1; padding-left: 28px; padding-right: 28px; }
+  /* The reader card/actions inherit the stage's auto side margins, and inside
+     the reader's flex column that makes them shrink to content width (~the
+     iframe's 300px default). Full width up to a wide reading cap instead. */
+  .ag-split-read .ag-stage > * { width: 100%; max-width: 960px; }
   .ag-split-empty {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 10px; color: var(--text-dim); font-size: var(--fs-body-s);
