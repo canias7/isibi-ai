@@ -399,6 +399,9 @@
 .ag-send-btn:active { filter: brightness(0.95); }
 .ag-send-btn:disabled { opacity: 0.45; cursor: default; }
 .ag-send-btn.ghost { background: var(--glass); color: var(--text); border: 1px solid var(--glass-edge); }
+/* Destructive ghost (domain Remove): red at rest, solid red once armed. */
+.ag-send-btn.ghost.danger { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.35); background: rgba(255, 107, 107, 0.08); }
+.ag-send-btn.ghost.danger.armed { color: #fff; background: var(--danger-solid); border-color: var(--danger-solid); }
 .ag-send-err { color: #ff6b6b; font-size: var(--fs-footnote); text-align: center; }
 
 /* Email campaign builder + list */

@@ -476,7 +476,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [testTo, setTestTo] = useState<Record<string, string>>({});   // per-domain test recipient
   const [testBusy, setTestBusy] = useState('');  // domain whose test send is in flight
   const [testMsg, setTestMsg] = useState<Record<string, string>>({}); // per-domain test result
-  const domPollRef = useRef(0); // background re-verify ticks while a domain is pending (capped)
+  const [domRmArm, setDomRmArm] = useState('');   // Remove armed for this domain — second tap actually removes
+  const domRmTimerRef = useRef<number | null>(null); // disarms Remove after a few seconds
+  const [domVerErr, setDomVerErr] = useState('');    // verify feedback for the open domain
+  const [domRecsErr, setDomRecsErr] = useState(false); // records fetch failed for the open domain
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
   const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
@@ -716,19 +719,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (sendraTab === 'automations') loadAutomations();
   }, [agent, commsApp, sendraTab, campNew]);
 
-  // While the Domains tab is open and a domain is still pending, re-check DNS in the
-  // background every 20s (capped) so a freshly-added domain flips to verified on its own.
-  useEffect(() => {
-    if (agent !== 'email' || commsApp !== null || sendraTab !== 'domains') { domPollRef.current = 0; return; }
-    const pending = domains.some((d) => !d.verified);
-    if (!pending || domPollRef.current > 15) return;
-    const id = setTimeout(async () => {
-      domPollRef.current += 1;
-      const fresh = await mailerListDomains().catch(() => null);
-      if (mountedRef.current && fresh) setDomains(fresh);
-    }, 20000);
-    return () => clearTimeout(id);
-  }, [agent, commsApp, sendraTab, domains]);
+  // (No background auto-verify: it only refetched the stored flag, which can't
+  // change without a real DNS re-check. Returns with Domain Connect one-click,
+  // where the provider callback makes polling meaningful.)
 
   // Keep the AI builder pinned to its newest message / rendered email.
   useEffect(() => { const el = chatThreadRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chatMsgs, tplBody, chatBusy]);
@@ -769,7 +762,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (id === 'webhook') loadWebhooks();
     if (id === 'logs') { setLogsQ(''); loadRequestLogs(); }
     if (id === 'deliver') loadDeliver();
-    if (id === 'domains') { setDomNew(''); setDomErr(''); domPollRef.current = 0; loadDomains(); }
+    if (id === 'domains') { setDomNew(''); setDomErr(''); loadDomains(); }
     setCommsApp(null); setInboxHome(false);
     setSendraTab(id);
   };
@@ -1165,14 +1158,14 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     try { const info = await discoverDomainConnect(domain, records); if (mountedRef.current) setDcInfo((m) => ({ ...m, [domain]: info })); } catch { /* ignore */ }
   };
   const addDomain = async () => {
-    const d = domNew.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    const d = domNew.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
     if (!d || domBusy) return;
     tap(); setDomBusy(true); setDomErr('');
     try {
       const r = await mailerAddDomain(d);
       if (!mountedRef.current) return;
       setDomRecords((m) => ({ ...m, [r.domain]: r.records }));
-      setDomNew(''); setDomOpen(r.domain); domPollRef.current = 0;
+      setDomNew(''); setDomOpen(r.domain);
       await loadDomains();
       runDiscovery(r.domain, r.records);
     } catch (e) { if (mountedRef.current) setDomErr(e instanceof Error ? e.message : 'Couldn’t add the domain — try again.'); }
@@ -1182,28 +1175,60 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const openDom = async (domain: string) => {
     tap();
     setDomOpen(domain); setDomRecOpen(null);
+    // Fresh page, fresh feedback: a test-send result or verify message from a
+    // previous visit reads as current state and misleads (a long-fixed error
+    // kept a user chasing a ghost).
+    setTestMsg((m) => (m[domain] ? { ...m, [domain]: '' } : m));
+    setDomVerErr(''); setDomRecsErr(false); setDomRmArm('');
     if (domRecords[domain]) { if (!dcInfo[domain]) runDiscovery(domain, domRecords[domain]); return; }
     try {
       const r = await mailerDomainRecords(domain);
       if (!mountedRef.current) return;
       setDomRecords((m) => ({ ...m, [domain]: r.records }));
       runDiscovery(domain, r.records);
-    } catch { /* ignore */ }
+    } catch { if (mountedRef.current) setDomRecsErr(true); }
   };
   const verifyDom = async (domain: string) => {
-    tap(); setDomVerifying(domain);
+    tap(); setDomVerifying(domain); setDomVerErr('');
     try {
       const r = await mailerVerifyDomain(domain);
       if (!mountedRef.current) return;
       setDomChecks((m) => ({ ...m, [domain]: r.checks }));
       setDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, verified: r.verified } : d));
+      if (!r.verified) {
+        const missing = !r.checks.dkim && !r.checks.spf ? 'DKIM and SPF records aren’t' : !r.checks.dkim ? 'the DKIM record isn’t' : 'the SPF record isn’t';
+        setDomVerErr(`Not verified yet — ${missing} visible in DNS. Records can take a few minutes to propagate; try again shortly.`);
+      }
       await loadDomains();
-    } catch { /* ignore */ }
+    } catch (e) { if (mountedRef.current) setDomVerErr(e instanceof Error ? e.message : 'Couldn’t check DNS — try again.'); }
     finally { if (mountedRef.current) setDomVerifying(''); }
   };
   const removeDom = async (domain: string) => {
+    try {
+      await mailerRemoveDomain(domain);
+      if (!mountedRef.current) return;
+      if (campDomain === domain) setCampDomain('');
+      if (domOpen === domain) setDomOpen(null);
+      // Drop everything cached for it — a re-add generates a NEW DKIM key, so
+      // stale checks/records would show green chips for a key that's gone.
+      const drop = <T,>(m: Record<string, T>) => { const n = { ...m }; delete n[domain]; return n; };
+      setDomChecks(drop); setTestMsg(drop); setDcInfo(drop); setDomRecords(drop);
+      await loadDomains();
+    } catch (e) { if (mountedRef.current) setDomVerErr(e instanceof Error ? e.message : 'Couldn’t remove the domain — try again.'); }
+  };
+  // Remove is destructive (deletes the DKIM signing key): first tap arms the
+  // button, the second within a few seconds actually removes.
+  const armRemove = (domain: string) => {
     tap();
-    try { await mailerRemoveDomain(domain); if (campDomain === domain) setCampDomain(''); if (domOpen === domain) setDomOpen(null); await loadDomains(); } catch { /* ignore */ }
+    if (domRmArm === domain) {
+      if (domRmTimerRef.current) { clearTimeout(domRmTimerRef.current); domRmTimerRef.current = null; }
+      setDomRmArm('');
+      removeDom(domain);
+      return;
+    }
+    setDomRmArm(domain);
+    if (domRmTimerRef.current) clearTimeout(domRmTimerRef.current);
+    domRmTimerRef.current = window.setTimeout(() => { if (mountedRef.current) setDomRmArm(''); }, 3500);
   };
   // Auto-configure: discover the host and, once our template is live, open the
   // one-click apply URL. Until then it just reports whether one-click is available.
@@ -2146,6 +2171,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         );
                       })}
                     </div>
+                    {!recs.length && domRecsErr && (
+                      <button className="ag-send-btn ghost" onClick={() => openDom(d.domain)}>Couldn’t load the records — tap to retry</button>
+                    )}
                     {verified && (
                       <>
                         <div className="ag-emd-sec">Send a test</div>
@@ -2156,9 +2184,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         {testMsg[d.domain] && <div className={`ag-dom-testmsg${testMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{testMsg[d.domain]}</div>}
                       </>
                     )}
+                    {domVerErr && <div className="ag-send-err">{domVerErr}</div>}
                     <div className="ag-dom-actions">
                       {!verified && <button className="ag-send-btn" disabled={domVerifying === d.domain} onClick={() => verifyDom(d.domain)}>{domVerifying === d.domain ? 'Verifying…' : 'Verify'}</button>}
-                      <button className="ag-send-btn ghost" onClick={() => removeDom(d.domain)}>Remove</button>
+                      <button className={`ag-send-btn ghost danger${domRmArm === d.domain ? ' armed' : ''}`} onClick={() => armRemove(d.domain)}>{domRmArm === d.domain ? 'Tap again to remove' : 'Remove'}</button>
                     </div>
                   </div>
                 );
