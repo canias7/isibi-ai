@@ -2884,9 +2884,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   </>
                 )}
                 <input className="ag-field" placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} onFocus={() => setToPicker(false)} />
-                {tplList.length > 0 && (
+                {!forwarding && tplList.length > 0 && (
                   // Dropdown picker: stays on the placeholder (value is pinned
-                  // to '') and applies whichever template gets picked.
+                  // to '') and applies whichever template gets picked. Hidden
+                  // on forwards — you forward the original, not a template.
                   <select
                     className="ag-field ag-tpl-select"
                     value=""
