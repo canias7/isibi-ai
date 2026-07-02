@@ -413,7 +413,21 @@
 .ag-camp, .ag-log { display: flex; align-items: center; gap: 10px; padding: 12px 13px; background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; }
 .ag-camp-main { flex: 1; min-width: 0; }
 /* Template row: orange initials tile */
-.ag-tpl-ini { flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: rgba(var(--brand-rgb), 0.14); color: var(--brand); font-weight: 800; font-size: var(--fs-body-s); }
+/* Templates: gallery of live email-preview cards + a dashed "new" tile. */
+.ag-tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.ag-tpl-new { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 210px; border: 1.5px dashed rgba(255, 255, 255, 0.26); border-radius: 16px; background: transparent; color: var(--text); font: inherit; font-weight: 700; font-size: var(--fs-body-s); cursor: pointer; }
+.ag-tpl-new:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.4); }
+.ag-tpl-new-ic { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--grad-brand); color: var(--on-brand); }
+.ag-tpl-card { display: flex; flex-direction: column; border: 1px solid var(--glass-edge); border-radius: 16px; overflow: hidden; background: #101216; cursor: pointer; transition: border-color 0.15s ease, transform 0.15s ease; }
+.ag-tpl-card:hover { border-color: rgba(255, 255, 255, 0.32); transform: translateY(-2px); }
+.ag-tpl-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* The preview iframe renders at 2x size scaled to 50% so the email looks like a
+   real page, not a squeezed mobile layout. pointer-events off: clicks hit the card. */
+.ag-tpl-shot { position: relative; display: block; height: 150px; background: #fff; overflow: hidden; pointer-events: none; }
+.ag-tpl-shot iframe { width: 200%; height: 200%; transform: scale(0.5); transform-origin: 0 0; border: 0; display: block; }
+.ag-tpl-meta { display: flex; flex-direction: column; gap: 2px; padding: 11px 13px; }
+.ag-tpl-nm { color: var(--text); font-weight: 700; font-size: var(--fs-body-s); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-tpl-when { color: var(--text-dim); font-size: var(--fs-caption); }
 .ag-camp-name { color: #fff; font-weight: 700; font-size: var(--fs-body-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ag-camp-sub { color: #9298a2; font-size: var(--fs-caption); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ag-camp-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }

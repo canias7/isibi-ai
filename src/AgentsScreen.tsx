@@ -72,19 +72,6 @@ function addTagStr(tags: string, t: string): string {
   if (!tag || cur.includes(tag)) return tags;
   return [...cur, tag].join(', ');
 }
-// First line of a template's HTML body, as plain text — used as the list subtitle
-// (more useful than the subject, which usually duplicates the name).
-function tplSnippet(html?: string): string {
-  if (!html) return '';
-  const text = html
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#\d+;/g, ' ')
-    .replace(/\s+/g, ' ').trim();
-  return text.split(' ').slice(0, 12).join(' ');
-}
-
 // Session caches (in-memory only), keyed by app so re-opening a view is instant
 // and Gmail/Outlook don't share each other's mail.
 const inboxCache: Record<string, EmailItem[]> = {};
@@ -2281,25 +2268,35 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                       <button className="ag-send-btn" onClick={startAI}><IconPlus size={16} /> New template</button>
                     </div>
                   ) : (
-                    <>
-                    <button className="ag-send-btn" onClick={startAI}>+ New template</button>
-                    <div className="ag-camp-list">
+                    <div className="ag-tpl-grid">
+                      <button className="ag-tpl-new" onClick={startAI}>
+                        <span className="ag-tpl-new-ic"><IconPlus size={20} /></span>
+                        New template
+                      </button>
                       {tplList.map((t) => {
                         const nm = t.name || t.subject || 'Template';
-                        const snip = tplSnippet(t.body) || t.subject || '';
+                        const when = t.updated_at ? Date.parse(t.updated_at) : NaN;
+                        // Old plain-text templates render as escaped text; built ones are HTML.
+                        const doc = t.kind === 'html' || /<[a-z][\s\S]*>/i.test(t.body || '')
+                          ? t.body || ''
+                          : `<div style="padding:28px;font-family:-apple-system,sans-serif;font-size:14px;line-height:1.6;color:#222;white-space:pre-wrap">${escapeHtml(t.body || '')}</div>`;
                         return (
-                          <button className="ag-camp" key={t.id} onClick={() => openTplEdit(t)}>
-                            <span className="ag-tpl-ini" aria-hidden="true">{(nm.trim()[0] || 'T').toUpperCase()}</span>
-                            <div className="ag-camp-main">
-                              <div className="ag-camp-name">{nm}</div>
-                              {snip && <div className="ag-camp-sub">{snip}</div>}
-                            </div>
-                            <span className="ag-chev" aria-hidden="true">›</span>
-                          </button>
+                          <div
+                            className="ag-tpl-card" key={t.id} role="button" tabIndex={0}
+                            onClick={() => openTplEdit(t)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTplEdit(t); } }}
+                          >
+                            <span className="ag-tpl-shot" aria-hidden="true">
+                              <iframe tabIndex={-1} title="" sandbox="allow-same-origin" scrolling="no" srcDoc={buildSrcDoc(fillMergeTags(doc))} />
+                            </span>
+                            <span className="ag-tpl-meta">
+                              <span className="ag-tpl-nm">{nm}</span>
+                              {!Number.isNaN(when) && <span className="ag-tpl-when">Edited {relTime(when)}</span>}
+                            </span>
+                          </div>
                         );
                       })}
                     </div>
-                    </>
                   )}
                 </>
               )
