@@ -285,12 +285,19 @@
   padding: 6px 13px;
   border-radius: 999px;
   cursor: pointer;
+  /* The dock is fixed at left:50%, so its shrink-to-fit width is computed
+     against half the viewport — without nowrap "Email & SMS" wraps to 3 lines. */
+  white-space: nowrap;
   transition: background var(--dur-press) ease, color var(--dur-press) ease;
 }
 .mkt-dock button.on { background: rgba(255, 255, 255, 0.13); color: var(--text); }
 .mkt-dock button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 .mkt-dock button img { width: 16px; height: 16px; border-radius: 5px; }
 .gf-out .mkt-dock { opacity: 0; transition: opacity var(--dur-exit) ease; }
+/* Inside the Marketing overlay the dock hovers ~56–100px below the safe area —
+   clear a band under each area's header so content never renders behind it. */
+.mkt-wrap .memg-top,
+.mkt-wrap .wingup-top { margin-bottom: 52px; }
 
 /* ---- Memory (constellation modal) ---- */
 .memg {
