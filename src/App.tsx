@@ -17,16 +17,14 @@ import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from '
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
-import { WINGUP_LOGO } from './wingupLogo';
 import { ASSETS, FILMS, Wall, attachParallax } from './loginScene';
-import { SENDRA_TOOLS, SOCIAL_TOOLS, type MktNavRequest } from './marketingNav';
+import { SENDRA_TOOLS, type MktNavRequest } from './marketingNav';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
 // opened, shrinking the initial bundle and speeding up launch.
 const ConnectorsGraph = lazy(() => import('./ConnectorsGraph'));
 const AgentsScreen = lazy(() => import('./AgentsScreen'));
-const WingupScreen = lazy(() => import('./WingupScreen'));
 
 // Compact fallback for a crashed overlay: the screen closes instead of the
 // whole app white-screening (the root boundary stays as the last resort).
@@ -158,13 +156,10 @@ export default function App() {
   const uid = session?.user.id ?? null;
 
   const [view, setView] = useState<View>('home');
-  // The Marketing agent: one overlay, two areas inside it — Email & SMS
-  // (Sendra) and Social (Wingup) — flipped via the floating dock.
+  // The Marketing agent: one overlay around the email engine (Sendra).
   const [mktOpen, setMktOpen] = useState(false);
-  // One Marketing page: the unified sidebar (desktop) and the dock (mobile)
-  // both steer this. `area` picks which engine renders; `id`+`n` deep-link it.
+  // The unified sidebar steers this; `id`+`n` deep-link into the engine.
   const [mktNav, setMktNav] = useState<MktNavRequest>({ area: 'email', id: 'emails', n: 0 });
-  const mktTab = mktNav.area;
   const mktGo = (area: 'email' | 'social', id: string) => {
     void tap();
     setMktNav((p) => ({ area, id, n: p.n + 1 }));
@@ -585,18 +580,11 @@ export default function App() {
                 entrances would replay (a hub-revealing cross-fade) on every
                 area flip. */}
             <div className="mkt-stage">
-            {/* Both engines stay mounted; area flips are pure show/hide. A
-                remount here replays the overlay entrance over the hub (an
-                ugly cross-fade), reloads all data, and loses in-progress
-                state (a half-written email would die on a peek at Social). */}
-            <div className={mktTab === 'email' ? 'mkt-area' : 'mkt-area mkt-area-off'}>
-              <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} active={mktTab === 'email'} />
+            <div className="mkt-area">
+              <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} active />
             </div>
-            <div className={mktTab === 'social' ? 'mkt-area' : 'mkt-area mkt-area-off'}>
-              <WingupScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} active={mktTab === 'social'} />
-            </div>
-            {/* One Marketing sidebar (desktop): every section of both areas in
-                a single nav — the screens' own sidebars retire behind it. */}
+            {/* One Marketing sidebar (desktop). Social (Wingup) retired —
+                Marketing is the email engine now. */}
             <nav className="mkt-side" aria-label="Marketing">
               <div className="mkt-side-brand">Marketing</div>
               <div className="mkt-side-scroll">
@@ -604,18 +592,8 @@ export default function App() {
                 {SENDRA_TOOLS.map((t) => (
                   <button
                     key={t.id}
-                    className={`mkt-side-link${mktNav.area === 'email' && mktNav.id === t.id ? ' on' : ''}`}
+                    className={`mkt-side-link${mktNav.id === t.id ? ' on' : ''}`}
                     onClick={() => mktGo('email', t.id)}
-                  >
-                    <t.Icon size={18} /> {t.name}
-                  </button>
-                ))}
-                <div className="mkt-side-grp"><img src={WINGUP_LOGO} alt="" aria-hidden /> Social</div>
-                {SOCIAL_TOOLS.map((t) => (
-                  <button
-                    key={t.id}
-                    className={`mkt-side-link${mktNav.area === 'social' && mktNav.id === t.id ? ' on' : ''}`}
-                    onClick={() => mktGo('social', t.id)}
                   >
                     <t.Icon size={18} /> {t.name}
                   </button>
@@ -625,25 +603,6 @@ export default function App() {
                 <IconArrowLeft size={16} /> Close
               </button>
             </nav>
-            {/* Floating area switcher (mobile): flips between the two engines. */}
-            <div className="mkt-dock" role="tablist" aria-label="Marketing areas">
-              <button
-                role="tab"
-                aria-selected={mktTab === 'email'}
-                className={mktTab === 'email' ? 'on' : undefined}
-                onClick={() => mktGo('email', 'emails')}
-              >
-                <img src={SENDRA_LOGO} alt="" aria-hidden /> Email &amp; SMS
-              </button>
-              <button
-                role="tab"
-                aria-selected={mktTab === 'social'}
-                className={mktTab === 'social' ? 'on' : undefined}
-                onClick={() => mktGo('social', 'landing')}
-              >
-                <img src={WINGUP_LOGO} alt="" aria-hidden /> Social
-              </button>
-            </div>
             </div>
             </ErrorBoundary>
           </div>
