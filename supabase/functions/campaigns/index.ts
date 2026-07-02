@@ -272,14 +272,15 @@ function whBadUrl(raw: string): boolean {
   let u: URL;
   try { u = new URL(raw); } catch { return true; }
   if (u.protocol !== "https:") return true;
-  const h = u.hostname.toLowerCase();
+  let h = u.hostname.toLowerCase();
+  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
+  if (h.includes(":")) return true; // any IPv6 literal — too many loopback/mapped forms to allowlist
   if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
   if (h === "169.254.169.254" || h === "metadata.google.internal") return true;
   if (/^(10|127|0)\./.test(h)) return true;
   if (/^192\.168\./.test(h)) return true;
   if (/^169\.254\./.test(h)) return true;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
-  if (h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80")) return true;
   return false;
 }
 async function whSign(secret: string, ts: string, body: string): Promise<string> {
@@ -600,11 +601,14 @@ Deno.serve(async (req: Request) => {
     if (action === "unschedule") {
       const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
-      await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&status=eq.scheduled`, {
-        method: "PATCH", headers: sbHeaders,
+      // count=exact so we can tell the client whether a still-scheduled campaign
+      // was actually reverted (vs the cron already flipping it to sending).
+      const r = await fetch(`${SB_URL}/rest/v1/campaigns?id=eq.${id}&user_id=eq.${uid}&status=eq.scheduled`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "count=exact" },
         body: JSON.stringify({ status: "draft", scheduled_at: null, updated_at: new Date().toISOString() }),
       });
-      return json(req, { ok: true });
+      const affected = parseInt((r.headers.get("content-range") || "").split("/")[1] || "0", 10);
+      return json(req, { ok: true, cancelled: affected > 0 });
     }
 
     // Sender-agnostic deliverability: 30-day volume + delivered/bounce/complaint rates,

@@ -241,8 +241,11 @@ export async function createCampaign(p: { app: string; name?: string; subject: s
   return (data || {}) as { id?: string; queued?: number; skipped?: number; invalid?: number; scheduled?: boolean; scheduled_at?: string | null; error?: string };
 }
 // Cancel a still-pending scheduled campaign (reverts it to a draft).
-export async function unscheduleCampaign(id: string): Promise<void> {
-  await supabase.functions.invoke('campaigns', { body: { action: 'unschedule', id } });
+// `cancelled` reflects whether a still-scheduled campaign was actually reverted;
+// false means the cron already started sending it (nothing to cancel).
+export async function unscheduleCampaign(id: string): Promise<{ cancelled?: boolean }> {
+  const { data } = await supabase.functions.invoke('campaigns', { body: { action: 'unschedule', id } });
+  return (data || {}) as { cancelled?: boolean };
 }
 export async function sendCampaignBatch(id: string): Promise<{ sent: number; failed: number; remaining: number; done: boolean; paused?: boolean; warmup?: { day: number; cap: number; used: number }; retry?: boolean; error?: string }> {
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'send', id } });
