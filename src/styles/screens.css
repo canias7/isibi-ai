@@ -299,6 +299,60 @@
 .mkt-wrap .memg-top,
 .mkt-wrap .wingup-top { margin-bottom: 52px; }
 
+/* ---- The one Marketing sidebar (desktop) ----
+   Every section of both areas in a single nav. Mobile keeps the dock +
+   per-app drawers; from 1024px this column replaces them all. */
+.mkt-side { display: none; }
+.gf-out .mkt-side { opacity: 0; transition: opacity var(--dur-exit) ease; }
+@media (min-width: 1024px) {
+  .mkt-side {
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 220;
+    display: flex; flex-direction: column; width: 244px;
+    padding: calc(env(safe-area-inset-top) + 20px) 14px calc(16px + env(safe-area-inset-bottom));
+    background: #0c0c0e;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .mkt-side-brand { padding: 6px 8px 12px; font-weight: 800; font-size: var(--fs-headline); letter-spacing: -0.02em; }
+  .mkt-side-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+  .mkt-side-grp {
+    display: flex; align-items: center; gap: 8px;
+    padding: 16px 8px 7px;
+    font-size: 0.62rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .mkt-side-grp img { width: 15px; height: 15px; border-radius: 5px; }
+  .mkt-side-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border: 0; border-radius: 11px;
+    background: none; color: var(--text-dim);
+    font: inherit; font-weight: 600; font-size: var(--fs-body-s);
+    cursor: pointer; text-align: left;
+    transition: background 140ms ease, color 140ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mkt-side-link:hover { background: rgba(255, 255, 255, 0.04); color: #cdd6e0; }
+  .mkt-side-link.on { background: rgba(255, 255, 255, 0.08); color: #fff; }
+  .mkt-side-exit {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 12px; padding: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px;
+    background: none; color: var(--text);
+    font: inherit; font-weight: 700; font-size: var(--fs-body-s);
+    cursor: pointer;
+  }
+  .mkt-side-exit:hover { background: rgba(255, 255, 255, 0.05); }
+
+  /* The unified sidebar replaces the per-app chrome: shift both engines'
+     screens right and retire their own sidebars, the dock, and the dock's
+     clearance band. */
+  .mkt-wrap .memg { left: 244px; }
+  .mkt-wrap .memg.ag .ag-drawer-wrap { display: none; }
+  .mkt-wrap .wingup-side { display: none; }
+  .mkt-wrap .mkt-dock { display: none; }
+  .mkt-wrap .memg-top,
+  .mkt-wrap .wingup-top { margin-bottom: 0; }
+}
+
 /* ---- Memory (constellation modal) ---- */
 .memg {
   position: fixed;

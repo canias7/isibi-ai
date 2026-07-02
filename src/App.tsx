@@ -19,6 +19,7 @@ import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
 import { WINGUP_LOGO } from './wingupLogo';
 import { ASSETS, FILMS, Wall, attachParallax } from './loginScene';
+import { SENDRA_TOOLS, SOCIAL_TOOLS, type MktNavRequest } from './marketingNav';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
@@ -144,7 +145,14 @@ export default function App() {
   // The Marketing agent: one overlay, two areas inside it — Email & SMS
   // (Sendra) and Social (Wingup) — flipped via the floating dock.
   const [mktOpen, setMktOpen] = useState(false);
-  const [mktTab, setMktTab] = useState<'email' | 'social'>('email');
+  // One Marketing page: the unified sidebar (desktop) and the dock (mobile)
+  // both steer this. `area` picks which engine renders; `id`+`n` deep-link it.
+  const [mktNav, setMktNav] = useState<MktNavRequest>({ area: 'email', id: 'emails', n: 0 });
+  const mktTab = mktNav.area;
+  const mktGo = (area: 'email' | 'social', id: string) => {
+    void tap();
+    setMktNav((p) => ({ area, id, n: p.n + 1 }));
+  };
   // Desktop-only hub scene gate: checked once at mount so phones never mount
   // (or download) the showcase videos.
   const [wideViewport] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches);
@@ -556,15 +564,45 @@ export default function App() {
           <div style={{ display: 'contents' }} className={mktUi.closing ? 'mkt-wrap gf-out' : 'mkt-wrap'}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setMktOpen(false); }} />}>
             {mktTab === 'email'
-              ? <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} />
-              : <WingupScreen connApps={connApps} onClose={() => setMktOpen(false)} />}
-            {/* Floating area switcher: the one Marketing page's two facets. */}
+              ? <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} />
+              : <WingupScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} />}
+            {/* One Marketing sidebar (desktop): every section of both areas in
+                a single nav — the screens' own sidebars retire behind it. */}
+            <nav className="mkt-side" aria-label="Marketing">
+              <div className="mkt-side-brand">Marketing</div>
+              <div className="mkt-side-scroll">
+                <div className="mkt-side-grp"><img src={SENDRA_LOGO} alt="" aria-hidden /> Email &amp; SMS</div>
+                {SENDRA_TOOLS.map((t) => (
+                  <button
+                    key={t.id}
+                    className={`mkt-side-link${mktNav.area === 'email' && mktNav.id === t.id ? ' on' : ''}`}
+                    onClick={() => mktGo('email', t.id)}
+                  >
+                    <t.Icon size={18} /> {t.name}
+                  </button>
+                ))}
+                <div className="mkt-side-grp"><img src={WINGUP_LOGO} alt="" aria-hidden /> Social</div>
+                {SOCIAL_TOOLS.map((t) => (
+                  <button
+                    key={t.id}
+                    className={`mkt-side-link${mktNav.area === 'social' && mktNav.id === t.id ? ' on' : ''}`}
+                    onClick={() => mktGo('social', t.id)}
+                  >
+                    <t.Icon size={18} /> {t.name}
+                  </button>
+                ))}
+              </div>
+              <button className="mkt-side-exit" onClick={() => { void tap(); setMktOpen(false); }}>
+                <IconArrowLeft size={16} /> Close
+              </button>
+            </nav>
+            {/* Floating area switcher (mobile): flips between the two engines. */}
             <div className="mkt-dock" role="tablist" aria-label="Marketing areas">
               <button
                 role="tab"
                 aria-selected={mktTab === 'email'}
                 className={mktTab === 'email' ? 'on' : undefined}
-                onClick={() => { void tap(); setMktTab('email'); }}
+                onClick={() => mktGo('email', 'emails')}
               >
                 <img src={SENDRA_LOGO} alt="" aria-hidden /> Email &amp; SMS
               </button>
@@ -572,7 +610,7 @@ export default function App() {
                 role="tab"
                 aria-selected={mktTab === 'social'}
                 className={mktTab === 'social' ? 'on' : undefined}
-                onClick={() => { void tap(); setMktTab('social'); }}
+                onClick={() => mktGo('social', 'landing')}
               >
                 <img src={WINGUP_LOGO} alt="" aria-hidden /> Social
               </button>

@@ -10,6 +10,7 @@ import { tap } from './haptics';
 import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
+import { SENDRA_TOOLS, type SendraTab, type SendraNavId, type MktNavRequest } from './marketingNav';
 import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, mailerMessages, mailerMessage, type SendingDomain, type DnsRecord, type Message as SentEmail } from './mailer';
 import { discoverDomainConnect, type DcSupport } from './domainConnect';
 
@@ -23,7 +24,6 @@ type IconCmp = typeof IconCompose;
 type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
-type SendraTab = 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'emails' | 'logs' | 'deliver' | 'automations';
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   texts: { t: 'Text', s: 'Send an SMS' },
   campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
@@ -36,21 +36,8 @@ const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   deliver: { t: 'Deliverability', s: 'Are your emails landing?' },
   automations: { t: 'Automations', s: 'Drip sequences on autopilot' },
 };
-// Sendra home menu. 'inbox'/'contacts' open the mail workspace; the rest are tabs/scaffolds.
-const HOME_TOOLS: { id: SendraTab | 'inbox' | 'contacts'; name: string; desc: string; Icon: IconCmp }[] = [
-  { id: 'inbox', name: 'Inbox', desc: 'All your mail', Icon: IconInbox },
-  { id: 'emails', name: 'Emails', desc: 'Sent emails', Icon: IconArrowUp },
-  { id: 'contacts', name: 'Contacts', desc: 'Your people', Icon: IconContacts },
-  { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
-  { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
-  { id: 'logs', name: 'Logs', desc: 'Every email sent', Icon: IconClock },
-  { id: 'deliver', name: 'Deliverability', desc: 'Are emails landing?', Icon: IconChart },
-  { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
-  { id: 'templates', name: 'Templates', desc: 'Reusable messages', Icon: IconDoc },
-  { id: 'webhook', name: 'Webhooks', desc: 'Post events out', Icon: IconWebhook },
-  { id: 'automations', name: 'Automations', desc: 'Drip sequences', Icon: IconWaveform },
-  { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
-];
+// Sendra home menu (shared with the unified Marketing sidebar in App.tsx).
+const HOME_TOOLS = SENDRA_TOOLS;
 
 // The mail workspace's top cards. Sequence opens the Automations tab; Broadcast opens Campaigns.
 const EMAIL_ACTIONS: { id: string; label: string; sub: string; icon: IconCmp }[] = [
@@ -317,7 +304,7 @@ function saveJob(j: PendingJob) { try { localStorage.setItem(JOB_KEY, JSON.strin
 function loadJob(): PendingJob | null { try { const s = localStorage.getItem(JOB_KEY); const j = s ? JSON.parse(s) : null; return j && Date.now() - j.at < 300000 ? j : null; } catch { return null; } }
 function clearJob() { try { localStorage.removeItem(JOB_KEY); } catch { /* ignore */ } }
 
-export default function AgentsScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
+export default function AgentsScreen({ connApps, onClose, navRequest }: { connApps: string[]; onClose: () => void; navRequest?: MktNavRequest }) {
   const [agent] = useState<AgentId | null>('email'); // home already chose the agent; open straight into Sendra
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
   const [sendraTab, setSendraTab] = useState<SendraTab>('emails'); // Sendra lands on Emails (sent log); the drawer is the nav
@@ -750,7 +737,7 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
   // Drawer navigation: jump straight to a tool (same actions the old home cards
   // fired) and close the sidebar. Clears any mail/reading state first so switching
   // sections from inside the inbox lands cleanly.
-  const navTo = (id: SendraTab | 'inbox' | 'contacts') => {
+  const navTo = (id: SendraNavId) => {
     setDrawerOpen(false);
     setReading(null);
     if (id === 'inbox') { openInbox(); return; }
@@ -764,6 +751,13 @@ export default function AgentsScreen({ connApps, onClose }: { connApps: string[]
     setCommsApp(null); setInboxHome(false);
     setSendraTab(id);
   };
+
+  // A click on the unified Marketing sidebar (App.tsx) lands here; `n` bumps
+  // on every click so repeating the same section still resets its view.
+  useEffect(() => {
+    if (navRequest && navRequest.area === 'email' && navRequest.n > 0) navTo(navRequest.id as SendraNavId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navRequest?.n]);
   const toggleContact = (email: string) => setContactSel((s) => {
     const n = new Set(s);
     if (n.has(email)) n.delete(email); else n.add(email);

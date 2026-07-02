@@ -8,6 +8,7 @@ import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
 import { CONNECTORS } from './connectorData';
 import { WINGUP_LOGO } from './wingupLogo';
+import type { MktNavRequest, SocialNavId } from './marketingNav';
 import {
   wingupAccount, wingupMedia, wingupInsights, wingupPublish, wingupYtVideos, wingupYtChannel,
   isPostableImage, type IgAccount, type IgMedia, type IgInsight, type YtVideo, type YtChannel,
@@ -276,7 +277,7 @@ function StudioPicker({ categories, onPick }: { categories: string[]; onPick: (c
   );
 }
 
-export default function WingupScreen({ connApps, onClose }: { connApps: string[]; onClose: () => void }) {
+export default function WingupScreen({ connApps, onClose, navRequest }: { connApps: string[]; onClose: () => void; navRequest?: MktNavRequest }) {
   const [view, setView] = useState<View>('landing');
   // ---- Compose flow: compose → generate → review → post ----
   const [step, setStep] = useState<Step>('compose');
@@ -494,6 +495,17 @@ export default function WingupScreen({ connApps, onClose }: { connApps: string[]
     setPickerOpen(false);
     setView('studio');
   };
+
+  // A click on the unified Marketing sidebar (App.tsx) lands here; `n` bumps
+  // on every click so repeating the same destination still resets its view.
+  useEffect(() => {
+    if (!navRequest || navRequest.area !== 'social' || navRequest.n === 0) return;
+    const id = navRequest.id as SocialNavId;
+    if (id === 'studio') openStudio();
+    else if (id === 'post') openPost();
+    else { void tap(); setPickerOpen(false); setView(id); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navRequest?.n]);
 
   // Open the "new project" category picker (the ＋ on Studio).
   const openPicker = () => {
