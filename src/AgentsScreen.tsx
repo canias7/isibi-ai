@@ -1525,6 +1525,15 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // pane render the same thing.
   const readerPane = reading ? (
     <div className="ag-stage ag-reader">
+      {/* Desktop: quiet reply/forward chips above the mail. */}
+      {splitMail && mailConnected && (
+        <div className="ag-reader-topbar">
+          {(reading.threadId || reading.email) && (
+            <button className="ag-chip-btn" onClick={openReply}>Reply</button>
+          )}
+          <button className="ag-chip-btn" onClick={openForward}>Forward</button>
+        </div>
+      )}
       <EmailDetail msg={{
         id: reading.id, app: reading.app, from: reading.from, email: reading.email,
         subject: reading.subject, time: reading.time, unread: reading.unread,
