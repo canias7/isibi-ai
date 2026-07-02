@@ -154,8 +154,8 @@
   .ag-split .ag-inbox .gf-email.sel,
   .ag-split .ag-inbox .gf-email.sel.gf-p-gmail,
   .ag-split .ag-inbox .gf-email.sel.gf-p-outlook {
-    background: rgba(232, 169, 58, 0.10);
-    box-shadow: inset 3px 0 0 var(--brand);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 3px 0 0 #fff;
   }
   .ag-split-empty {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -163,7 +163,7 @@
   }
   .ag-split-empty p { margin: 0; }
   /* The open email's row in the list. */
-  .gf-email.sel { background: rgba(232, 169, 58, 0.09); box-shadow: inset 3px 0 0 var(--brand); }
+  .gf-email.sel { background: rgba(255, 255, 255, 0.07); box-shadow: inset 3px 0 0 #fff; }
 }
 /* Mobile: the two-pane wrapper is invisible — the list stage lays out as before. */
 .ag-mailwrap { display: contents; }

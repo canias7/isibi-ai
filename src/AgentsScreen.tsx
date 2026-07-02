@@ -2825,12 +2825,21 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 )}
                 <input className="ag-field" placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} onFocus={() => setToPicker(false)} />
                 {tplList.length > 0 && (
-                  <div className="ag-tpl-row">
-                    <span className="ag-tpl-lbl">Template:</span>
-                    {tplList.slice(0, 8).map((t) => (
-                      <button key={t.id} className="ag-tpl-chip" onClick={() => applyComposeTemplate(t)}>{t.name || t.subject}</button>
+                  // Dropdown picker: stays on the placeholder (value is pinned
+                  // to '') and applies whichever template gets picked.
+                  <select
+                    className="ag-field ag-tpl-select"
+                    value=""
+                    onChange={(e) => {
+                      const t = tplList.find((x) => x.id === e.target.value);
+                      if (t) { tap(); applyComposeTemplate(t); }
+                    }}
+                  >
+                    <option value="" disabled>Use a template…</option>
+                    {tplList.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name || t.subject}</option>
                     ))}
-                  </div>
+                  </select>
                 )}
                 {composeKind === 'html' ? (
                   <div className="ag-tpl-preview">
