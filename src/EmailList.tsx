@@ -173,7 +173,6 @@ export interface ContactItem {
   id?: string;    // set for Sendra address-book contacts (editable); absent for mailbox-pulled ones
   name: string;
   email?: string;
-  phone?: string;
   photo?: string; // real profile photo url (default placeholders are dropped server-side)
   tags?: string[]; // segment labels (Sendra contacts only)
 }
@@ -203,8 +202,8 @@ export function ContactsList(
   return (
     <div className="gf-contacts gf-contacts-flat">
       {items.map((c, i) => {
-        const label = c.name || c.email || c.phone || 'Unknown';
-        const subs = [c.email, c.phone].filter((s): s is string => !!s && s !== label); // show email AND phone
+        const label = c.name || c.email || 'Unknown';
+        const subs = [c.email].filter((s): s is string => !!s && s !== label);
         const email = c.email || '';
         const pickable = !!selectable && !!email;       // only contacts with an email can be selected
         const on = pickable && !!selected?.has(email);

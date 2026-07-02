@@ -362,7 +362,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [contactSelMode, setContactSelMode] = useState(false);      // multi-select mode
   const [contactSel, setContactSel] = useState<Set<string>>(new Set()); // selected emails
   const [savedContacts, setSavedContacts] = useState<SavedContact[]>([]); // Sendra's own address book
-  const [cForm, setCForm] = useState<{ id?: string; name: string; email: string; phone: string; tags: string } | null>(null); // add/edit overlay
+  const [cForm, setCForm] = useState<{ id?: string; name: string; email: string; tags: string } | null>(null); // add/edit overlay
   const [contactTag, setContactTag] = useState('');                 // active segment filter ('' = all)
   const [cFormBusy, setCFormBusy] = useState(false);
   const [cFormErr, setCFormErr] = useState('');
@@ -586,7 +586,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // mailbox-pulled contacts not already covered (deduped by email). Used by the
   // Contacts screen and the composer "To" picker so it's never empty.
   const mergedContacts: ContactItem[] = (() => {
-    const own: ContactItem[] = savedContacts.map((c) => ({ id: c.id, name: c.name, email: c.email || undefined, phone: c.phone || undefined, tags: c.tags?.length ? c.tags : undefined }));
+    const own: ContactItem[] = savedContacts.map((c) => ({ id: c.id, name: c.name, email: c.email || undefined, tags: c.tags?.length ? c.tags : undefined }));
     const seen = new Set(own.map((c) => (c.email || '').toLowerCase()).filter(Boolean));
     return [...own, ...contacts.filter((c) => !c.email || !seen.has(c.email.toLowerCase()))];
   })();
@@ -892,15 +892,12 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
   // ---- Sendra address book (own contacts) ----
   const loadSaved = () => listSavedContacts().then((c) => { if (mountedRef.current) setSavedContacts(c); });
-  const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCTag(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', phone: c?.phone || '', tags: c?.tags?.join(', ') || '' }); };
+  const openContactForm = (c?: ContactItem) => { tap(); setCFormErr(''); setCTag(''); setCForm({ id: c?.id, name: c?.name || '', email: c?.email || '', tags: c?.tags?.join(', ') || '' }); };
   const saveCForm = async () => {
     if (!cForm || cFormBusy) return;
-    const name = cForm.name.trim(), email = cForm.email.trim().toLowerCase(), phone = cForm.phone.trim();
+    const name = cForm.name.trim(), email = cForm.email.trim().toLowerCase();
     const tags = cForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!EMAIL_RE.test(email)) { setCFormErr('A valid email is required.'); return; }
-    // Light phone sanity: if present it must contain a plausible number of digits,
-    // so free text like "call after 5pm" doesn't get stored as a phone number.
-    if (phone) { const digits = phone.replace(/\D/g, ''); if (digits.length < 7 || digits.length > 15) { setCFormErr('That phone number doesn’t look right — leave it blank or use digits (7–15).'); return; } }
     // No two contacts can share an email (checked here for an instant message; the
     // server + a DB unique index enforce it for real).
     if (savedContacts.some((c) => (c.email || '').trim().toLowerCase() === email && c.id !== cForm.id)) {
@@ -908,7 +905,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     }
     setCFormBusy(true); setCFormErr('');
     try {
-      const r = cForm.id ? await updateSavedContact(cForm.id, { name, email, phone, tags }) : await addSavedContact({ name, email, phone, tags });
+      const r = cForm.id ? await updateSavedContact(cForm.id, { name, email, tags }) : await addSavedContact({ name, email, tags });
       if (!mountedRef.current) return;
       if (r.error) setCFormErr(
         r.error === 'duplicate_email' ? 'A contact with this email already exists.'
@@ -1937,7 +1934,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
       {reading && !splitMail ? (
         readerPane
       ) : commsApp === null ? (
-          // ---- Tabs: Emails / Campaigns / Templates / Logs / Deliverability / Domains / Webhooks / Automations / Schedule / Text ----
+          // ---- Tabs: Emails / Campaigns / Templates / Logs / Deliverability / Domains / Webhooks / Automations / Schedule ----
           <div className="ag-stage">
             {note && <div className="ag-note">{note}</div>}
             {sendraTab === 'campaigns' ? (
@@ -3004,7 +3001,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
             const allTags = [...new Set(mergedContacts.flatMap((c) => c.tags || []))].sort();
             const tag = contactTag && allTags.includes(contactTag) ? contactTag : '';
             const base = tag ? mergedContacts.filter((c) => c.tags?.includes(tag)) : mergedContacts;
-            const list = q ? base.filter((c) => `${c.name || ''} ${c.email || ''} ${c.phone || ''}`.toLowerCase().includes(q)) : base;
+            const list = q ? base.filter((c) => `${c.name || ''} ${c.email || ''}`.toLowerCase().includes(q)) : base;
             const loading = contactsState === 'loading' && mergedContacts.length === 0;
             return (
               <>
@@ -3080,10 +3077,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   <label className="ag-cf-row">
                     <span className="ag-cf-k">Email <span className="ag-cf-req">*</span></span>
                     <input className="ag-cf-v" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" placeholder="name@email.com" value={cForm.email} onChange={(e) => setCForm({ ...cForm, email: e.target.value })} />
-                  </label>
-                  <label className="ag-cf-row">
-                    <span className="ag-cf-k">Phone</span>
-                    <input className="ag-cf-v" type="tel" inputMode="tel" placeholder="Optional" value={cForm.phone} onChange={(e) => setCForm({ ...cForm, phone: e.target.value })} />
                   </label>
                 </div>
                 <div className="ag-cf-seg">
