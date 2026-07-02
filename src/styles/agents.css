@@ -76,7 +76,22 @@
   .memg.ag .ag-drawer-scrim { display: none; }
   .memg.ag .ag-drawer { position: static; width: 100%; box-shadow: none; animation: none; }
   .memg.ag .ag-drawer-x { display: none; }
+
+  /* ===== Two-pane inbox (desktop): message list left, reading pane right ===== */
+  .ag-mailwrap.ag-split { display: flex; flex: 1; min-height: 0; }
+  .ag-split > .ag-stage { flex: 0 0 420px; width: 420px; border-right: 1px solid rgba(255, 255, 255, 0.08); }
+  .ag-split-read { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .ag-split-read .ag-stage { flex: 1; }
+  .ag-split-empty {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; color: var(--text-dim); font-size: var(--fs-body-s);
+  }
+  .ag-split-empty p { margin: 0; }
+  /* The open email's row in the list. */
+  .gf-email.sel { background: rgba(232, 169, 58, 0.09); box-shadow: inset 3px 0 0 var(--brand); }
 }
+/* Mobile: the two-pane wrapper is invisible — the list stage lays out as before. */
+.ag-mailwrap { display: contents; }
 
 /* --- Contacts empty state (illustrated) --- */
 /* When empty the stage becomes a column so the illustration centers in the space

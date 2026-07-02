@@ -323,6 +323,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [mergedTok, setMergedTok] = useState<Record<string, string | null>>({}); // combined inbox: each mailbox's next-page token
   const [frontier, setFrontier] = useState<Record<string, number>>({}); // combined inbox: oldest fetched ts per mailbox (watermark)
   const [reading, setReading] = useState<EmailItem | null>(null);
+  // Desktop two-pane inbox (list + reading pane). Static like App's
+  // wideViewport — mid-session resizes across the breakpoint are rare.
+  const [wide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches);
   const [pull, setPull] = useState(0);
   const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [contactsState, setContactsState] = useState<Loadable>('idle');
@@ -1448,11 +1451,15 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     setChatView('preview');
   };
 
-  const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && !reading;
+  // Desktop: the inbox is a two-pane client (list + reading pane), so an open
+  // email is NOT a sub-view there — the header, corner buttons and list all
+  // stay put while the mail renders beside them.
+  const splitMail = wide && !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox';
+  const inMailInbox = !!commsApp && commsApp !== 'telegram' && emailTab === 'inbox' && (!reading || splitMail);
   const inTgList = commsApp === 'telegram' && !tgChat;
   // In a sub-view (reading/compose/thread/builder) the header shows a Back arrow;
   // at a top-level destination it shows the hamburger that opens the tool drawer.
-  const deepView = !!reading || !!tgChat
+  const deepView = (!!reading && !splitMail) || !!tgChat
     || (!!commsApp && commsApp !== 'telegram' && emailTab === 'compose')
     || (sendraTab === 'campaigns' && campNew)
     || (sendraTab === 'templates' && !!tplEdit);
@@ -1494,14 +1501,14 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   );
 
   // ---- header titles ----
-  const title = reading ? 'Email'
+  const title = reading && !splitMail ? 'Email'
     : commsApp === null ? SENDRA_META[sendraTab].t
     : commsApp === 'telegram' ? (tgChat ? tgChat.title : 'Telegram')
     : emailTab === 'inbox' ? 'Inbox'
     : emailTab === 'contacts' ? 'Contacts'
     : emailTab === 'compose' ? (replyThreadId ? 'Reply' : 'New email')
     : (commsApp === 'm365' ? 'Outlook' : 'Gmail');
-  const subtitle = reading ? (reading.from || reading.email || 'Message')
+  const subtitle = reading && !splitMail ? (reading.from || reading.email || 'Message')
     : commsApp === null ? SENDRA_META[sendraTab].s
     : commsApp === 'telegram' ? (tgChat ? (tgChat.username ? `@${tgChat.username}` : 'Chat') : `${tgList.length || ''} chats`.trim() || 'Your chats')
     : emailTab === 'inbox' ? 'Newest first'
@@ -1513,6 +1520,26 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
 
   // The AI template builder gets a Sendra-orange ambient instead of the default amber glow.
   const builderMode = !reading && agent !== null && commsApp === null && sendraTab === 'templates' && !!tplEdit;
+
+  // The open email — the mobile full-screen reader and the desktop reading
+  // pane render the same thing.
+  const readerPane = reading ? (
+    <div className="ag-stage ag-reader">
+      <EmailDetail msg={{
+        id: reading.id, app: reading.app, from: reading.from, email: reading.email,
+        subject: reading.subject, time: reading.time, unread: reading.unread,
+        draft: reading.draft, body: reading.snippet || '',
+      }} />
+      {mailConnected ? (
+        <div className="ag-reader-actions" style={{ display: 'flex', gap: 10 }}>
+          {(reading.threadId || reading.email) && (
+            <button className="ag-send-btn ag-reply-btn" style={{ flex: 1 }} onClick={openReply}>Reply</button>
+          )}
+          <button className="ag-send-btn ghost" style={{ flex: 1 }} onClick={openForward}>Forward</button>
+        </div>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <div className={`memg ag${builderMode ? ' ag-builder' : ''}`} ref={trapRef} tabIndex={-1}>
@@ -1548,22 +1575,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
         ) : <span style={{ width: 40 }} />}
       </div>
 
-      {reading ? (
-        <div className="ag-stage ag-reader">
-          <EmailDetail msg={{
-            id: reading.id, app: reading.app, from: reading.from, email: reading.email,
-            subject: reading.subject, time: reading.time, unread: reading.unread,
-            draft: reading.draft, body: reading.snippet || '',
-          }} />
-          {mailConnected ? (
-            <div className="ag-reader-actions" style={{ display: 'flex', gap: 10 }}>
-              {(reading.threadId || reading.email) && (
-                <button className="ag-send-btn ag-reply-btn" style={{ flex: 1 }} onClick={openReply}>Reply</button>
-              )}
-              <button className="ag-send-btn ghost" style={{ flex: 1 }} onClick={openForward}>Forward</button>
-            </div>
-          ) : null}
-        </div>
+      {reading && !splitMail ? (
+        readerPane
       ) : commsApp === null ? (
           // ---- Tabs: Emails / Campaigns / Templates / Logs / Deliverability / Domains / Webhooks / Automations / Schedule / Text ----
           <div className="ag-stage">
@@ -2555,6 +2568,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
         )
 
       ) : emailTab === 'inbox' ? (
+        // Mobile: the wrapper is display:contents (invisible). Desktop: it
+        // becomes the two-pane split — list left, reading pane right.
+        <div className={`ag-mailwrap${splitMail ? ' ag-split' : ''}`}>
         <div className="ag-stage" ref={inboxScrollRef} onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd}>
           <div
             className="ag-ptr"
@@ -2596,7 +2612,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   <div className="ag-empty">{searchBusy ? 'Searching…' : `No emails match “${inboxQ.trim()}”.`}</div>
                 ) : (
                   <div className="ag-inbox" key={pageIdx}>
-                    <EmailList items={shownInbox} onOpen={(it) => { tap(); markReadLocal(it); setReading(it); }} badges={combinedInbox} />
+                    <EmailList items={shownInbox} onOpen={(it) => { tap(); markReadLocal(it); setReading(it); }} badges={combinedInbox} selectedId={splitMail ? reading?.id : undefined} />
                   </div>
                 )}
                 {!inboxQuery && !combinedInbox && hasPager && (
@@ -2615,6 +2631,17 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
             ) : (
               <EmailSkeleton />
             )}
+        </div>
+        {splitMail && (
+          <div className="ag-split-read">
+            {readerPane ?? (
+              <div className="ag-split-empty">
+                <IconInbox size={30} />
+                <p>Select an email to read it here</p>
+              </div>
+            )}
+          </div>
+        )}
         </div>
       ) : emailTab === 'contacts' ? (
         <div className={`ag-stage${mergedContacts.length === 0 ? ' ag-contacts-stage-empty' : ''}`}>
