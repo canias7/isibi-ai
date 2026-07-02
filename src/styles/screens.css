@@ -311,6 +311,12 @@
 .gf-out .mkt-stage { animation: memgOut var(--dur-exit) var(--ease-exit) forwards; }
 @media (prefers-reduced-motion: reduce) { .mkt-stage, .gf-out .mkt-stage { animation: none; } }
 
+/* Inside Marketing the canvas is pure black — no amber wash. (Wingup already
+   paints itself black; this aligns the Sendra side with it. The .memg.ag
+   variant out-specifies Sendra's own orange radial ambient.) */
+.mkt-wrap .memg,
+.mkt-wrap .memg.ag { background: #000; }
+
 /* The two engines' show/hide wrappers: no box of their own, and the hidden
    one is display:none so its fixed-position screen fully disappears. The
    screens' own entrance is off here — display:none → shown restarts CSS
