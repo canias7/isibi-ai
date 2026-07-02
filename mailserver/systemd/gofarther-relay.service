@@ -10,8 +10,9 @@ EnvironmentFile=/etc/gofarther/mailer.env
 ExecStart=/usr/local/bin/deno run --allow-net --allow-env --allow-run=/usr/sbin/sendmail /opt/gofarther/relay.ts
 Restart=always
 RestartSec=3
-# Hardening
-NoNewPrivileges=true
+# Hardening. NoNewPrivileges is deliberately absent: postfix's sendmail execs
+# the setgid `postdrop` helper to write the queue, and NoNewPrivileges strips
+# setgid — postdrop then retries the queue write forever and every send hangs.
 ProtectSystem=full
 PrivateTmp=true
 
