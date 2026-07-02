@@ -277,7 +277,10 @@ function StudioPicker({ categories, onPick }: { categories: string[]; onPick: (c
   );
 }
 
-export default function WingupScreen({ connApps, onClose, navRequest }: { connApps: string[]; onClose: () => void; navRequest?: MktNavRequest }) {
+// `active`: false while this engine is the hidden half of the Marketing page —
+// it stays mounted (state survives area flips) but its focus trap goes dormant
+// so it can't eat Tab/Escape meant for the visible one.
+export default function WingupScreen({ connApps, onClose, navRequest, active = true }: { connApps: string[]; onClose: () => void; navRequest?: MktNavRequest; active?: boolean }) {
   const [view, setView] = useState<View>('landing');
   // ---- Compose flow: compose → generate → review → post ----
   const [step, setStep] = useState<Step>('compose');
@@ -419,7 +422,7 @@ export default function WingupScreen({ connApps, onClose, navRequest }: { connAp
     if (view !== 'landing') { setView('landing'); return; }
     onClose();
   };
-  useFocusTrap(true, trapRef, back);
+  useFocusTrap(active, trapRef, back);
 
   const togglePlatform = (id: string) => {
     void tap();

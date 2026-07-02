@@ -304,7 +304,10 @@ function saveJob(j: PendingJob) { try { localStorage.setItem(JOB_KEY, JSON.strin
 function loadJob(): PendingJob | null { try { const s = localStorage.getItem(JOB_KEY); const j = s ? JSON.parse(s) : null; return j && Date.now() - j.at < 300000 ? j : null; } catch { return null; } }
 function clearJob() { try { localStorage.removeItem(JOB_KEY); } catch { /* ignore */ } }
 
-export default function AgentsScreen({ connApps, onClose, navRequest }: { connApps: string[]; onClose: () => void; navRequest?: MktNavRequest }) {
+// `active`: false while this engine is the hidden half of the Marketing page —
+// it stays mounted (state survives area flips) but its focus trap goes dormant
+// so it can't eat Tab/Escape meant for the visible one.
+export default function AgentsScreen({ connApps, onClose, navRequest, active = true }: { connApps: string[]; onClose: () => void; navRequest?: MktNavRequest; active?: boolean }) {
   const [agent] = useState<AgentId | null>('email'); // home already chose the agent; open straight into Sendra
   const [commsApp, setCommsApp] = useState<CommsId | null>(null); // null while Sendra shows its home / the app constellation
   const [sendraTab, setSendraTab] = useState<SendraTab>('emails'); // Sendra lands on Emails (sent log); the drawer is the nav
@@ -547,7 +550,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest }: { connAp
     else if (sendraTab !== 'emails') setSendraTab('emails');
     else onClose();
   };
-  useFocusTrap(true, trapRef, back);
+  useFocusTrap(active, trapRef, back);
 
   // ---- mail workspace loaders (provider-aware) ----
   const loadPage = useCallback((idx: number) => {
