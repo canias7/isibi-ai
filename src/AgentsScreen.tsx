@@ -436,6 +436,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
   const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats; ab?: { a: { sent: number; opened: number; clicked: number }; b: { sent: number; opened: number; clicked: number } } | null } | null>(null);
   const [campStatsBusy, setCampStatsBusy] = useState(false);
+  const [campStatsErr, setCampStatsErr] = useState(false); // stats fetch failed → don't present zeros as real
+  const campGenRef = useRef(0);                            // bumps per campaign session; a stale drain loop's writes are dropped
   const [supList, setSupList] = useState<Suppression[]>([]);
   const [copied, setCopied] = useState('');   // last-copied value (webhook secret), for the "Copied" flash
   // Outbound webhooks
@@ -824,6 +826,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (id === 'logs') { setLogsQ(''); loadRequestLogs(); }
     if (id === 'deliver') loadDeliver();
     if (id === 'domains') { setDomNew(''); setDomErr(''); loadDomains(); }
+    // Return to the campaign list, not a stale stats/suppressions view left over
+    // from a previous visit — but never yank a send that's still draining.
+    if (id === 'campaigns' && campState !== 'sending') { setCampView('list'); setCampNew(false); }
     setCommsApp(null); setInboxHome(false);
     setSendraTab(id);
   };
@@ -1172,6 +1177,11 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     return m ? { email: m[2].trim(), name: m[1].trim() || undefined } : { email: tok };
   });
   const openCampNew = () => {
+    // Don't wipe a send that's still draining — a stray "new campaign" tap while
+    // the loop runs would reset campState and let the old loop write onto the new
+    // form. Bump the generation so any in-flight loop stops touching state.
+    if (campState === 'sending') { setCampErr('A campaign is still sending — wait for it to finish.'); return; }
+    campGenRef.current++;
     tap(); setCampNew(true); setCampState('idle'); setCampErr('');
     setCampSubject(''); setCampBody(''); setCampBodyKind('text'); setCampRecips(''); setCampProg({ sent: 0, total: 0, failed: 0 });
     setCampAb(false); setCampSubjectB(''); setCampBodyB('');
@@ -1181,16 +1191,64 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
   const cancelScheduled = async (id: string) => {
     tap();
-    try { await unscheduleCampaign(id); const cl = await listCampaigns(); if (mountedRef.current) setCampList(cl); } catch { /* ignore */ }
+    try {
+      const r = await unscheduleCampaign(id);
+      const cl = await listCampaigns(); if (mountedRef.current) setCampList(cl);
+      // The server only cancels a still-scheduled campaign; if the cron already
+      // flipped it to sending, say so rather than implying a clean cancel.
+      if (mountedRef.current && r && r.cancelled === false) setNote('That campaign already started sending — it couldn’t be cancelled.');
+    } catch { if (mountedRef.current) setNote('Couldn’t cancel that scheduled campaign — try again.'); }
+  };
+  // Drain an already-created campaign's send batches. Shared by a fresh send and
+  // by "Resume" on a campaign left in `sending` (e.g. the tab was closed mid-send).
+  // Guarded by campGenRef so a superseded loop never writes stale progress/state.
+  const drainCampaign = async (id: string, gen: number) => {
+    let done = false;
+    let idle = 0; // consecutive no-progress batches (cron holds the lock) → back off, then bail
+    try {
+      while (!done) {
+        const r = await sendCampaignBatch(id);
+        if (!mountedRef.current || campGenRef.current !== gen) return;
+        if (r.error) { setCampState('err'); setCampErr('Couldn’t continue sending — reopen the campaign to resume.'); return; }
+        if (r.paused) { setCampState('err'); setCampErr('Sending paused — your recent bounce or complaint rate is too high. Clean your list, then try again.'); return; }
+        const moved = (r.sent || 0) + (r.failed || 0);
+        setCampProg((p) => ({ total: p.total, sent: p.sent + (r.sent || 0), failed: p.failed + (r.failed || 0) }));
+        if (r.warmup) { setCampState('warmup'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
+        if (r.retry) { setCampState('retry'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
+        done = r.done;
+        if (!done && moved === 0) {
+          // No progress: the server-side cron is draining this campaign in
+          // parallel. Back off instead of hammering; after a few empty rounds
+          // hand it fully to the cron and reassure the user.
+          if (++idle >= 4) { setCampState('retry'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
+          await new Promise((res) => setTimeout(res, 1500 * idle));
+          if (!mountedRef.current || campGenRef.current !== gen) return;
+        } else { idle = 0; }
+      }
+      setCampState('done');
+      listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); });
+    } catch {
+      if (mountedRef.current && campGenRef.current === gen) { setCampState('err'); setCampErr('Something went wrong while sending — reopen the campaign to resume.'); }
+    }
+  };
+  // Resume a campaign the list shows as still `sending` (rather than re-creating
+  // it, which would double-send everyone the first pass already reached).
+  const resumeCampaign = (c: Campaign) => {
+    tap(); campGenRef.current++;
+    const gen = campGenRef.current;
+    setCampNew(true); setCampView('list'); setCampState('sending'); setCampErr('');
+    setCampProg({ sent: c.sent, total: c.total, failed: c.failed });
+    drainCampaign(c.id, gen);
   };
   const openCampStats = async (c: Campaign) => {
-    tap(); setCampView('stats'); setCampStatsBusy(true);
+    tap(); setCampView('stats'); setCampStatsBusy(true); setCampStatsErr(false);
     setCampStats({ campaign: c, stats: { total: c.total, sent: c.sent, failed: c.failed, delivered: 0, opened: 0, clicked: 0, bounced: 0, complained: 0 } });
     try {
       const r = await campaignStats(c.id);
       if (!mountedRef.current) return;
       if (r.campaign && r.stats) setCampStats({ campaign: r.campaign, stats: r.stats, ab: r.ab ?? null });
-    } catch { /* keep the optimistic values */ }
+      else setCampStatsErr(true);
+    } catch { if (mountedRef.current) setCampStatsErr(true); }
     finally { if (mountedRef.current) setCampStatsBusy(false); }
   };
   const applyTemplate = (t: Template) => { tap(); setCampSubject(t.subject); setCampBody(t.body); setCampBodyKind(t.kind === 'html' ? 'html' : 'text'); if (campState === 'err') setCampState('idle'); };
@@ -1206,6 +1264,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
       }
       scheduledIso = new Date(t).toISOString();
     }
+    campGenRef.current++;
+    const gen = campGenRef.current;
     tap(); setCampState('sending'); setCampErr(''); setCampProg({ sent: 0, total: recipients.length, failed: 0 });
     try {
       // Mailbox (campDomain '') or the user's own verified self-hosted domain (send_via 'self').
@@ -1222,8 +1282,15 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
         ...(campAb && campSubjectB.trim() ? { subject_b: campSubjectB.trim() } : {}),
         ...(campAb && campBodyKind === 'text' && campBodyB.trim() ? { body_b: campToHtml(campBodyB.trim()) } : {}),
       });
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || campGenRef.current !== gen) return;
       if (c.scheduled) { setCampState('scheduled'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
+      // We asked to SCHEDULE but the server didn't schedule it (time too soon /
+      // clock skew) — DO NOT fall through to an immediate blast. Surface it.
+      if (scheduledIso && !c.scheduled) {
+        setCampState('err'); setCampErr('Couldn’t schedule for that time — pick a time a few minutes further out. Nothing was sent.');
+        if (c.id) unscheduleCampaign(c.id).catch(() => {}); // clean up the stray draft
+        return;
+      }
       if (c.error || !c.id) {
         setCampState('err');
         setCampErr(
@@ -1237,25 +1304,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
         return;
       }
       setCampProg({ sent: 0, total: c.queued ?? recipients.length, failed: 0 });
-      let done = false;
-      while (!done) {
-        const r = await sendCampaignBatch(c.id);
-        if (!mountedRef.current) return;
-        if (r.paused) { setCampState('err'); setCampErr('Sending paused — your recent bounce or complaint rate is too high. Clean your list, then try again.'); return; }
-        setCampProg((p) => ({ total: p.total, sent: p.sent + r.sent, failed: p.failed + r.failed }));
-        // Warm-up cap hit for now: a new sending domain ramps volume gradually to protect
-        // deliverability. The rest keeps sending automatically (server cron) — stop the
-        // client loop and show a reassuring panel rather than spinning.
-        if (r.warmup) { setCampState('warmup'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
-        // Mail server briefly unreachable: the server keeps retrying (durable queue),
-        // so stop the client loop and reassure rather than spin.
-        if (r.retry) { setCampState('retry'); listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); }); return; }
-        done = r.done;
-      }
-      setCampState('done');
-      listCampaigns().then((cl) => { if (mountedRef.current) setCampList(cl); });
+      await drainCampaign(c.id, gen);
     } catch {
-      if (mountedRef.current) { setCampState('err'); setCampErr('Something went wrong while sending — check your connection and try again.'); }
+      if (mountedRef.current && campGenRef.current === gen) { setCampState('err'); setCampErr('Something went wrong while sending — check your connection and try again.'); }
     }
   };
 
@@ -2064,6 +2115,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                       </div>
                     );
                   })()}
+                  {campStatsErr && <div className="ag-send-err">Couldn’t refresh these stats — the numbers above may be out of date.</div>}
                   <button className="ag-send-btn ghost" disabled={campStatsBusy} onClick={() => openCampStats(campStats.campaign)}>{campStatsBusy ? 'Refreshing…' : 'Refresh'}</button>
                   <p className="ag-foot">Opens are approximate — some mail apps (Apple Mail, Gmail's image proxy) pre-load or block the tracking pixel, so treat opens as a trend. Clicks are exact. Delivered/bounced fill in for sends through Sendra’s built-in email or a verified domain.</p>
                 </div>
@@ -2082,8 +2134,12 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
                     <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
                     <div className="ag-camp-list">
-                      {campList.map((c) => (
-                        <button className="ag-camp" key={c.id} onClick={() => openCampStats(c)}>
+                      {campList.map((c) => {
+                        // A campaign left mid-send (tab closed, error) can be resumed
+                        // instead of re-created — re-creating would double-send.
+                        const resumable = (c.status === 'sending' || c.status === 'paused' || c.status === 'draft') && c.sent < c.total;
+                        return (
+                        <div className="ag-camp" key={c.id} onClick={() => openCampStats(c)} role="button" tabIndex={0}>
                           <div className="ag-camp-main">
                             <div className="ag-camp-name">{c.name || c.subject || 'Campaign'}</div>
                             <div className="ag-camp-sub">{c.subject}</div>
@@ -2091,10 +2147,12 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                           <div className="ag-camp-meta">
                             <span className={`ag-camp-pill is-${c.status}`}>{c.status}</span>
                             <span className="ag-camp-count">{c.sent}/{c.total}</span>
+                            {resumable && <button className="ag-camp-resume" onClick={(e) => { e.stopPropagation(); resumeCampaign(c); }}>Resume</button>}
                           </div>
                           <span className="ag-camp-chev">›</span>
-                        </button>
-                      ))}
+                        </div>
+                        );
+                      })}
                     </div>
                     </>
                   )}

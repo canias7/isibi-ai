@@ -421,6 +421,7 @@
 .ag-camp-pill.is-sent { color: #34d399; background: rgba(52, 211, 153, 0.14); }
 .ag-camp-pill.is-sending { color: #fbbf24; background: rgba(251, 191, 36, 0.14); }
 .ag-camp-count { color: #9298a2; font-size: var(--fs-caption); }
+.ag-camp-resume { background: var(--grad-brand); color: var(--on-brand); border: none; font: inherit; font-weight: 700; font-size: var(--fs-label); padding: 4px 10px; border-radius: var(--r-pill); cursor: pointer; }
 button.ag-camp { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 button.ag-camp:active { filter: brightness(1.15); }
 .ag-camp-pill.is-failed { color: #ff6b6b; background: rgba(255, 107, 107, 0.14); }
