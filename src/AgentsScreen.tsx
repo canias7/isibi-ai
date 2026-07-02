@@ -1128,7 +1128,31 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
 
   // Copy a value to the clipboard with a brief "Copied" flash (webhook secret + DNS records).
-  const copyText = (s: string) => { try { navigator.clipboard?.writeText(s); tap(); setCopied(s); setTimeout(() => { if (mountedRef.current) setCopied(''); }, 1500); } catch { /* ignore */ } };
+  // navigator.clipboard.writeText can reject (permissions policy, focus loss) — await it and
+  // fall back to a hidden textarea + execCommand so the flash only shows when the copy landed.
+  const copyText = async (s: string) => {
+    tap();
+    let ok = false;
+    try { await navigator.clipboard.writeText(s); ok = true; } catch { /* fall through to legacy path */ }
+    if (!ok) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = s;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch { ok = false; }
+    }
+    if (!ok || !mountedRef.current) return;
+    setCopied(s);
+    setTimeout(() => { if (mountedRef.current) setCopied(''); }, 1500);
+  };
 
   // ---- Custom sending domains (self-hosted, via the `mailer` fn) ----
   // Add the domain (we generate its DKIM + return the records to publish), then
