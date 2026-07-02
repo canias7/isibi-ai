@@ -2189,7 +2189,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                           <IconSearch size={14} />
                           <input placeholder="Search…" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domQ} onChange={(e) => setDomQ(e.target.value)} />
                         </label>
-                        <select className="ag-tpl-select ag-domx-filter" value={domFilter} onChange={(e) => setDomFilter(e.target.value as 'all' | 'verified' | 'pending')}>
+                        <select className="ag-field ag-tpl-select ag-domx-filter" value={domFilter} onChange={(e) => setDomFilter(e.target.value as 'all' | 'verified' | 'pending')}>
                           <option value="all">All statuses</option>
                           <option value="verified">Verified</option>
                           <option value="pending">Pending</option>
