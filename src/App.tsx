@@ -18,6 +18,7 @@ import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
 import { WINGUP_LOGO } from './wingupLogo';
+import { MARKETING_LOGO } from './marketingLogo';
 import { ASSETS, FILMS, Wall, attachParallax } from './loginScene';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
@@ -69,8 +70,14 @@ function HubScene() {
       {FILMS.map((f, i) => (
         <div className={`lp-fly hub-f${i + 1}`} data-depth={f.depth} key={f.cls}>
           <div className="lp-orbit">
-            <div className="lp-card">
-              <video src={f.src} poster={f.poster} muted playsInline loop autoPlay preload="metadata" />
+            {/* Unlike the login showcase, the hub is visited constantly — the
+                poster carries the card and the video only streams on hover. */}
+            <div
+              className="lp-card"
+              onMouseEnter={(e) => { void e.currentTarget.querySelector('video')?.play()?.catch(() => {}); }}
+              onMouseLeave={(e) => { e.currentTarget.querySelector('video')?.pause(); }}
+            >
+              <video src={f.src} poster={f.poster} muted playsInline loop preload="none" />
               <span className="lp-wm">gofarther.dev</span>
               <div className="lp-cap"><div className="lp-lbl">✦ PROMPT</div><p>{f.prompt}</p></div>
             </div>
@@ -526,8 +533,12 @@ export default function App() {
           <div className="live-bg" aria-hidden="true" />
           {wideViewport && <HubScene />}
           <div className="home agents-home">
+            {/* The word, given its identity back: the amber M above, a quiet
+                subline below saying what lives inside — and that it opens. */}
             <button className="mkt-word" onClick={() => { void tap(); void loadConnectors(); setMktOpen(true); }}>
-              Marketing
+              <img className="mkt-word-mark" src={MARKETING_LOGO} alt="" aria-hidden />
+              <span className="mkt-word-txt">Marketing</span>
+              <span className="mkt-word-sub">Email · SMS · Social</span>
             </button>
             {brokenApps.length > 0 && !brokenDismissed && (
               <div className="conn-warn" role="status">
