@@ -344,10 +344,18 @@
 .mkt-wrap .mkt-area .memg,
 .gf-out .mkt-wrap .mkt-area .memg { animation: none; }
 
+/* ---- Studio: a bare black canvas while its real contents are designed ----
+   The .memg shell gives it the fixed footprint and (via .mkt-wrap) the pure
+   black; the only chrome is a way back — this floating arrow on mobile, the
+   sidebar's Close from 1024px. */
+.stu-blank { align-items: flex-start; }
+.stu-back { margin: calc(env(safe-area-inset-top) + 10px) 0 0 12px; }
+@media (min-width: 1024px) { .stu-back { display: none; } }
+
 /* ---- The hub-page sidebar (desktop) ----
    One skin, worn by both overlays: Marketing (Sendra's sections) and Studio
-   (Wingup's destinations). Mobile keeps the per-app chrome — Sendra's drawer,
-   Wingup's tab bar; from 1024px this column replaces it. */
+   (bare until its contents land). Mobile keeps the per-app chrome — Sendra's
+   drawer; from 1024px this column replaces it. */
 .mkt-side { display: none; }
 .gf-out .mkt-side { opacity: 0; transition: opacity var(--dur-exit) ease; }
 @media (min-width: 1024px) {
