@@ -275,10 +275,6 @@ input, textarea { caret-color: var(--brand); }
 /* The word IS the interface: white "Marketing" on pure black. Quietly dimmed
    at rest; comes fully alight (with a soft halo) on hover/press. */
 .mkt-word {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
   background: none;
   border: none;
   cursor: pointer;
@@ -292,22 +288,6 @@ input, textarea { caret-color: var(--brand); }
   transition: opacity 0.35s ease, text-shadow 0.35s ease, transform var(--dur-press) ease;
 }
 .mkt-word:hover { opacity: 1; text-shadow: 0 0 60px rgba(255, 255, 255, 0.35); }
-/* The lockup around the word: brand mark above, whisper of contents below. */
-.mkt-word-mark {
-  width: 52px; height: 52px;
-  border-radius: 13px;
-  box-shadow: 0 10px 30px rgba(232, 169, 58, 0.32);
-  margin-bottom: 8px;
-}
-.mkt-word-sub {
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  transition: color 0.35s ease;
-}
-.mkt-word:hover .mkt-word-sub { color: var(--brand); }
 .mkt-word:active { transform: scale(0.98); }
 .mkt-word:focus-visible { outline: 2px solid var(--brand); outline-offset: 6px; border-radius: var(--r-control); }
 /* Desktop: the single word carries the whole screen — let it be monumental.
@@ -316,8 +296,6 @@ input, textarea { caret-color: var(--brand); }
    so the word owns it. */
 @media (min-width: 900px) {
   .mkt-word { font-size: 6.5rem; letter-spacing: -0.04em; position: relative; z-index: 2; }
-  .mkt-word-mark { width: 68px; height: 68px; border-radius: 17px; }
-  .mkt-word-sub { font-size: 0.95rem; }
 
   /* Start below the app header (~52px tall): otherwise the wall's top row of
      labels/thumbnails renders straight into the title bar. overflow:hidden

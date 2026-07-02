@@ -18,7 +18,6 @@ import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
 import { WINGUP_LOGO } from './wingupLogo';
-import { MARKETING_LOGO } from './marketingLogo';
 import { ASSETS, FILMS, Wall, attachParallax } from './loginScene';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
@@ -533,12 +532,8 @@ export default function App() {
           <div className="live-bg" aria-hidden="true" />
           {wideViewport && <HubScene />}
           <div className="home agents-home">
-            {/* The word, given its identity back: the amber M above, a quiet
-                subline below saying what lives inside — and that it opens. */}
             <button className="mkt-word" onClick={() => { void tap(); void loadConnectors(); setMktOpen(true); }}>
-              <img className="mkt-word-mark" src={MARKETING_LOGO} alt="" aria-hidden />
-              <span className="mkt-word-txt">Marketing</span>
-              <span className="mkt-word-sub">Email · SMS · Social</span>
+              Marketing
             </button>
             {brokenApps.length > 0 && !brokenDismissed && (
               <div className="conn-warn" role="status">
