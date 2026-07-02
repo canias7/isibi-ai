@@ -4,10 +4,11 @@ import {
   IconHome, IconPhotos, IconFilm, IconUser, IconCompose, IconPlus,
 } from './icons';
 
-// The one Marketing page's nav, shared between the unified desktop sidebar
-// (App.tsx) and Sendra's mobile drawer (AgentsScreen). Lives outside the
-// lazily-loaded screens so the shell can render it without pulling their
-// chunks into the main bundle.
+// Nav for the hub's pages — Marketing (Sendra) and Studio (Wingup) — shared
+// between the unified desktop sidebars (App.tsx) and the screens' own mobile
+// chrome (Sendra's drawer, Wingup's tabs). Lives outside the lazily-loaded
+// screens so the shell can render it without pulling their chunks into the
+// main bundle.
 
 type IconCmp = typeof IconCompose;
 

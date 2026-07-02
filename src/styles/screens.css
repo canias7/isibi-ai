@@ -253,55 +253,9 @@
 .conn-btn.on { background: var(--brand); color: #000; border-color: var(--brand); }
 .conn-btn.danger { background: var(--danger-solid); color: #fff; border-color: var(--danger-solid); }
 
-/* ---- Marketing dock: floating switcher between the Marketing page's two
-   areas (Email & SMS / Social). Sits just below either screen's own header,
-   above the overlay (z-index 200) but below its popovers where possible. ---- */
-.mkt-dock {
-  position: fixed;
-  z-index: 230;
-  left: 50%;
-  transform: translateX(-50%);
-  top: calc(env(safe-area-inset-top) + 56px);
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 999px;
-  background: rgba(16, 16, 18, 0.74);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-}
-.mkt-dock button {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  border: none;
-  background: none;
-  color: var(--text-dim);
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 6px 13px;
-  border-radius: 999px;
-  cursor: pointer;
-  /* The dock is fixed at left:50%, so its shrink-to-fit width is computed
-     against half the viewport — without nowrap "Email & SMS" wraps to 3 lines. */
-  white-space: nowrap;
-  transition: background var(--dur-press) ease, color var(--dur-press) ease;
-}
-.mkt-dock button.on { background: rgba(255, 255, 255, 0.13); color: var(--text); }
-.mkt-dock button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
-.mkt-dock button img { width: 16px; height: 16px; border-radius: 5px; }
-.gf-out .mkt-dock { opacity: 0; transition: opacity var(--dur-exit) ease; }
-/* Inside the Marketing overlay the dock hovers ~56–100px below the safe area —
-   clear a band under each area's header so content never renders behind it. */
-.mkt-wrap .memg-top,
-.mkt-wrap .wingup-top { margin-bottom: 52px; }
-
-/* The stage carries the one enter/exit beat for the whole Marketing page
-   (screens, sidebar, dock together). It never re-hides while open, so the
-   entrance can't replay on area flips. */
+/* The stage carries the one enter/exit beat for a whole hub page — Marketing
+   or Studio (screens + sidebar together). It never re-hides while open, so
+   the entrance can't replay on area flips. */
 .mkt-stage {
   position: fixed;
   inset: 0;
@@ -390,9 +344,10 @@
 .mkt-wrap .mkt-area .memg,
 .gf-out .mkt-wrap .mkt-area .memg { animation: none; }
 
-/* ---- The one Marketing sidebar (desktop) ----
-   Every section of both areas in a single nav. Mobile keeps the dock +
-   per-app drawers; from 1024px this column replaces them all. */
+/* ---- The hub-page sidebar (desktop) ----
+   One skin, worn by both overlays: Marketing (Sendra's sections) and Studio
+   (Wingup's destinations). Mobile keeps the per-app chrome — Sendra's drawer,
+   Wingup's tab bar; from 1024px this column replaces it. */
 .mkt-side { display: none; }
 .gf-out .mkt-side { opacity: 0; transition: opacity var(--dur-exit) ease; }
 @media (min-width: 1024px) {
@@ -434,14 +389,10 @@
   .mkt-side-exit:hover { background: rgba(255, 255, 255, 0.05); }
 
   /* The unified sidebar replaces the per-app chrome: shift both engines'
-     screens right and retire their own sidebars, the dock, and the dock's
-     clearance band. */
+     screens right and retire their own sidebars. */
   .mkt-wrap .memg { left: 244px; }
   .mkt-wrap .memg.ag .ag-drawer-wrap { display: none; }
   .mkt-wrap .wingup-side { display: none; }
-  .mkt-wrap .mkt-dock { display: none; }
-  .mkt-wrap .memg-top,
-  .mkt-wrap .wingup-top { margin-bottom: 0; }
 }
 
 /* ---- Memory (constellation modal) ---- */

@@ -17,14 +17,16 @@ import { biometryAvailable, biometryStatus, unlock, type BiometryStatus } from '
 import { track } from './analytics';
 import { useFocusTrap } from './a11y';
 import { SENDRA_LOGO } from './sendraLogo';
+import { WINGUP_LOGO } from './wingupLogo';
 import { ASSETS, FILMS, Wall, attachParallax } from './loginScene';
-import { SENDRA_TOOLS, type MktNavRequest } from './marketingNav';
+import { SENDRA_TOOLS, SOCIAL_TOOLS, type MktNavRequest } from './marketingNav';
 import { FORCE_UPDATE_EVENT, type ForceUpdateMode } from './ota';
 
 // Heavy, on-demand screens are code-split: their JS downloads only when first
 // opened, shrinking the initial bundle and speeding up launch.
 const ConnectorsGraph = lazy(() => import('./ConnectorsGraph'));
 const AgentsScreen = lazy(() => import('./AgentsScreen'));
+const WingupScreen = lazy(() => import('./WingupScreen'));
 
 // Compact fallback for a crashed overlay: the screen closes instead of the
 // whole app white-screening (the root boundary stays as the last resort).
@@ -54,7 +56,7 @@ type View = 'home' | 'connectors' | 'settings';
 
 // The hub's living background (desktop only): the login page's atmosphere —
 // drifting wall of work + flying showcase cards — wrapped around the screen
-// edges, leaving the centre clear for the Marketing word.
+// edges, leaving the centre clear for the hub words.
 function HubScene() {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -164,6 +166,14 @@ export default function App() {
     void tap();
     setMktNav((p) => ({ area, id, n: p.n + 1 }));
   };
+  // The Studio agent: Marketing's sibling overlay around the creative engine
+  // (Wingup) — generation studio, gallery, posting.
+  const [stuOpen, setStuOpen] = useState(false);
+  const [stuNav, setStuNav] = useState<MktNavRequest>({ area: 'social', id: 'landing', n: 0 });
+  const stuGo = (id: string) => {
+    void tap();
+    setStuNav((p) => ({ area: 'social', id, n: p.n + 1 }));
+  };
   // Desktop-only hub scene gate: checked once at mount so phones never mount
   // (or download) the showcase videos.
   const [wideViewport] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches);
@@ -240,6 +250,7 @@ export default function App() {
   const confirmUi = useDismiss(confirmDelete);
   const signOutUi = useDismiss(confirmSignOut);
   const mktUi = useDismiss(mktOpen);
+  const stuUi = useDismiss(stuOpen);
   // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
   const legalUi = useDismiss(!!legalDoc);
   const lastLegal = useRef(legalDoc);
@@ -545,7 +556,7 @@ export default function App() {
       ) : (
         <>
           {/* Pure-black hub: the .live-bg keeps its black backdrop but carries
-              no orbs here — the word IS the interface. On desktop the login
+              no orbs here — the words ARE the interface. On desktop the login
               page's living scene wraps the edges (mounted only on wide
               viewports so phones never load the videos). */}
           <div className="live-bg" aria-hidden="true" />
@@ -553,6 +564,9 @@ export default function App() {
           <div className="home agents-home">
             <button className="mkt-word" onClick={() => { void tap(); void loadConnectors(); setMktOpen(true); }}>
               Marketing
+            </button>
+            <button className="mkt-word" onClick={() => { void tap(); void loadConnectors(); setStuOpen(true); }}>
+              Studio
             </button>
             {brokenApps.length > 0 && !brokenDismissed && (
               <div className="conn-warn" role="status">
@@ -583,8 +597,8 @@ export default function App() {
             <div className="mkt-area">
               <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} active />
             </div>
-            {/* One Marketing sidebar (desktop). Social (Wingup) retired —
-                Marketing is the email engine now. */}
+            {/* The Marketing sidebar (desktop) — the email engine's sections.
+                The creative side lives in its own Studio overlay below. */}
             <nav className="mkt-side" aria-label="Marketing">
               <div className="mkt-side-brand">Marketing</div>
               <div className="mkt-side-scroll">
@@ -600,6 +614,40 @@ export default function App() {
                 ))}
               </div>
               <button className="mkt-side-exit" onClick={() => { void tap(); setMktOpen(false); }}>
+                <IconArrowLeft size={16} /> Close
+              </button>
+            </nav>
+            </div>
+            </ErrorBoundary>
+          </div>
+        </Suspense>
+      )}
+      {/* Studio: Marketing's sibling overlay, same stage/sidebar shell (the
+          mkt-* skin is shared) around the creative engine. On mobile Wingup's
+          own bottom tab bar takes over and this sidebar never shows. */}
+      {stuUi.mounted && (
+        <Suspense fallback={<RouteFallback />}>
+          <div style={{ display: 'contents' }} className={stuUi.closing ? 'mkt-wrap gf-out' : 'mkt-wrap'}>
+            <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setStuOpen(false); }} />}>
+            <div className="mkt-stage">
+            <div className="mkt-area">
+              <WingupScreen connApps={connApps} onClose={() => setStuOpen(false)} navRequest={stuNav} active />
+            </div>
+            <nav className="mkt-side" aria-label="Studio">
+              <div className="mkt-side-brand">Studio</div>
+              <div className="mkt-side-scroll">
+                <div className="mkt-side-grp"><img src={WINGUP_LOGO} alt="" aria-hidden /> Create &amp; post</div>
+                {SOCIAL_TOOLS.map((t) => (
+                  <button
+                    key={t.id}
+                    className={`mkt-side-link${stuNav.id === t.id ? ' on' : ''}`}
+                    onClick={() => stuGo(t.id)}
+                  >
+                    <t.Icon size={18} /> {t.name}
+                  </button>
+                ))}
+              </div>
+              <button className="mkt-side-exit" onClick={() => { void tap(); setStuOpen(false); }}>
                 <IconArrowLeft size={16} /> Close
               </button>
             </nav>
