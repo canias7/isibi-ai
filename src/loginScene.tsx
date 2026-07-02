@@ -8,13 +8,15 @@ import { useMemo } from 'react';
 export const ASSETS = 'https://lkpfeqrelvziltfwpuxi.supabase.co/storage/v1/object/public/email-assets/login';
 
 // The five showcase generations: placement/motion personality lives in CSS
-// (.lp-f1..5 on the login, .hub-f1..5 on the hub).
+// (.lp-f1..5 on the login, .hub-f1..5 on the hub). Each video carries a
+// bundled first-frame poster so a card is never a blank slab while the video
+// streams in (or when autoplay/codec support is missing).
 export const FILMS = [
-  { src: `${ASSETS}/v-headset.mp4`, cls: 'lp-f1', depth: 1.4, prompt: 'Ultra high-end commercial product shot, VR headset against deep navy, magenta and cyan accents, immaculate reflections.' },
-  { src: `${ASSETS}/v-architect.mp4`, cls: 'lp-f2', depth: 0.8, prompt: 'Editorial photography, 8K — architect in a cream blazer, brutalist concrete stairwell, soft skylight, magazine cover quality.' },
-  { src: `${ASSETS}/v-perfume.mp4`, cls: 'lp-f3', depth: 1.8, prompt: 'Crystal-cut perfume bottle catching prismatic light, slow orbit, hard sun through venetian blinds, warm sandstone wall.' },
-  { src: `${ASSETS}/v-temple.mp4`, cls: 'lp-f4', depth: 1.0, prompt: 'Slow cinematic push-in through an ancient temple, fog in the valley, golden light catching dust between stone pillars.' },
-  { src: `${ASSETS}/v-dragon.mp4`, cls: 'lp-f5', depth: 1.5, prompt: 'Torch-lit forest at dusk — a shaman with glowing markings, then an iridescent dragon descends, trees trembling.' },
+  { src: `${ASSETS}/v-headset.mp4`, poster: '/login-posters/p-headset.jpg', cls: 'lp-f1', depth: 1.4, prompt: 'Ultra high-end commercial product shot, VR headset against deep navy, magenta and cyan accents, immaculate reflections.' },
+  { src: `${ASSETS}/v-architect.mp4`, poster: '/login-posters/p-architect.jpg', cls: 'lp-f2', depth: 0.8, prompt: 'Editorial photography, 8K — architect in a cream blazer, brutalist concrete stairwell, soft skylight, magazine cover quality.' },
+  { src: `${ASSETS}/v-perfume.mp4`, poster: '/login-posters/p-perfume.jpg', cls: 'lp-f3', depth: 1.8, prompt: 'Crystal-cut perfume bottle catching prismatic light, slow orbit, hard sun through venetian blinds, warm sandstone wall.' },
+  { src: `${ASSETS}/v-temple.mp4`, poster: '/login-posters/p-temple.jpg', cls: 'lp-f4', depth: 1.0, prompt: 'Slow cinematic push-in through an ancient temple, fog in the valley, golden light catching dust between stone pillars.' },
+  { src: `${ASSETS}/v-dragon.mp4`, poster: '/login-posters/p-dragon.jpg', cls: 'lp-f5', depth: 1.5, prompt: 'Torch-lit forest at dusk — a shaman with glowing markings, then an iridescent dragon descends, trees trembling.' },
 ];
 
 const WALL_LABELS: [string, string][] = [
@@ -31,8 +33,11 @@ const SPRITE_COLS = 10;
 const SPRITE_TILES = 50;
 
 // The drifting "wall of work" behind the cards: clusters of tiny generations
-// sliced from one sprite sheet, each with a working label.
-export function Wall() {
+// sliced from one sprite sheet, each with a working label. `quiet` drops the
+// activity verbs, pulsing dots and fresh-tile flashes — on the signed-in hub
+// those read as live jobs running on the user's account, which they aren't;
+// the login page keeps the full showcase.
+export function Wall({ quiet = false }: { quiet?: boolean } = {}) {
   const clusters = useMemo(() => {
     let t = 0;
     return WALL_SIZES.map((n, ci) => {
@@ -49,12 +54,15 @@ export function Wall() {
     <div className="lp-wall" aria-hidden="true">
       {clusters.map((c, i) => (
         <div className="lp-cluster" key={i}>
-          <span className="lp-clabel"><b>{c.name}</b> · {c.verb} <span className="lp-cdot" style={{ animationDelay: `${c.dotDelay}s` }} /></span>
+          <span className="lp-clabel">
+            <b>{c.name}</b>
+            {!quiet && <> · {c.verb} <span className="lp-cdot" style={{ animationDelay: `${c.dotDelay}s` }} /></>}
+          </span>
           <div className="lp-crow">
             {c.tiles.map((tl, k) => (
               <span
                 key={k}
-                className={`lp-tile${tl.big ? ' big' : ''}${tl.fresh ? ' fresh' : ''}`}
+                className={`lp-tile${tl.big ? ' big' : ''}${tl.fresh && !quiet ? ' fresh' : ''}`}
                 style={{
                   backgroundPosition: `${-(tl.idx % SPRITE_COLS) * 100}% ${-Math.floor(tl.idx / SPRITE_COLS) * 100}%`,
                   animationDelay: tl.fresh ? `${tl.delay}s` : undefined,
