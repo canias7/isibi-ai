@@ -2215,6 +2215,18 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                       <div className="ag-chatb-tools"><button className="ag-chatb-undo" onClick={undoChat} disabled={chatBusy}>↩ Undo last change</button></div>
                     )}
                     <div className="ag-chatb-thread" ref={chatThreadRef}>
+                      {chatMsgs.length === 0 && !chatBusy && (
+                        <div className="ag-chatb-hero">
+                          <div className="ag-chatb-hero-ic"><IconCompose size={26} /></div>
+                          <div className="ag-chatb-hero-ttl">What should we write?</div>
+                          <p className="ag-chatb-hero-sub">Describe the email you need and Sendra designs it — layout, copy and all. Attach a logo or a screenshot to match your brand.</p>
+                          <div className="ag-chatb-hero-sugs">
+                            {['A welcome email for new customers', 'Announce a product launch', 'A monthly newsletter', 'A limited-time discount offer'].map((s) => (
+                              <button key={s} className="ag-chatb-sug" onClick={() => { tap(); runChat([{ role: 'user', content: s }], []); }}>{s}</button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {chatMsgs.map((m, i) => (
                         m.role === 'user' ? (
                           <div key={i} className="ag-cb-u">
