@@ -545,7 +545,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (drawerOpen) { setDrawerOpen(false); return; } // Esc / hardware-back closes the drawer first
     if (reading) setReading(null);
     else if (tgChat) setTgChat(null);
-    else if (sendState === 'confirm') setSendState('idle');
     else if (commsApp && commsApp !== 'telegram' && emailTab === 'compose') setEmailTab(inboxHome ? 'inbox' : 'home');
     else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home' && !inboxHome) setEmailTab('home');
     else if (commsApp) { setCommsApp(null); setInboxHome(false); }
@@ -895,13 +894,27 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
   const validTo = EMAIL_RE.test(to.trim());
   const splitAddrs = (s: string) => s.split(/[,;]/).map((x) => x.trim()).filter((x) => EMAIL_RE.test(x));
+  // Fire-and-forget: the mail sends in the background while the user goes
+  // straight back to the inbox — no confirm sheet, no "sent" screen. If the
+  // send fails, the composer reopens with the draft restored and the error
+  // line showing, so nothing is ever lost silently.
   const doSend = () => {
     tap();
-    setSendState('sending');
     const ccArr = splitAddrs(cc), bccArr = splitAddrs(bcc);
-    sendEmail({ to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, cc: ccArr.length ? ccArr : undefined, bcc: bccArr.length ? bccArr : undefined, app: sendApp, html: composeKind === 'html' })
-      .then(() => { if (mountedRef.current) setSendState('sent'); })
-      .catch(() => { if (mountedRef.current) setSendState('err'); });
+    const payload = { to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, cc: ccArr.length ? ccArr : undefined, bcc: bccArr.length ? bccArr : undefined, app: sendApp, html: composeKind === 'html' };
+    const draft = { to, cc, bcc, subject, body: bodyText, kind: composeKind, reply: replyThreadId, showCc };
+    setSendState('idle');
+    setTo(''); setCc(''); setBcc(''); setSubject(''); setBodyText(''); setComposeKind('text'); setShowCc(false);
+    setReplyThreadId(null);
+    setEmailTab('inbox');
+    sendEmail(payload).catch(() => {
+      if (!mountedRef.current) return;
+      setTo(draft.to); setCc(draft.cc); setBcc(draft.bcc); setSubject(draft.subject);
+      setBodyText(draft.body); setComposeKind(draft.kind); setShowCc(draft.showCc);
+      setReplyThreadId(draft.reply);
+      setEmailTab('compose');
+      setSendState('err');
+    });
   };
 
   // Telegram send
@@ -1527,7 +1540,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     : commsApp === 'telegram' ? (tgChat ? (tgChat.username ? `@${tgChat.username}` : 'Chat') : `${tgList.length || ''} chats`.trim() || 'Your chats')
     : emailTab === 'inbox' ? 'Newest first'
     : emailTab === 'contacts' ? (mergedContacts.length ? `${mergedContacts.length} people` : 'Your address book')
-    : emailTab === 'compose' ? (sendState === 'sent' ? 'Sent' : 'Compose')
+    : emailTab === 'compose' ? 'Compose'
     : (mailConnected ? 'Ready' : 'Connect to begin');
 
   const sortedMsgs = [...tgMsgs].sort((a, b) => (a.date || 0) - (b.date || 0));
@@ -2785,17 +2798,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
       ) : emailTab === 'compose' ? (
         <div className="ag-stage ag-compose">
           {!mailConnected ? connectCard('Link this mailbox so the agent can send on your behalf.')
-            : sendState === 'sent' ? (
-              <div className="ag-sent">
-                <span className="ag-sent-ic"><IconCheck size={26} /></span>
-                <div className="ag-sent-title">{replyThreadId ? 'Replied' : 'Sent'}</div>
-                <div className="ag-sent-sub">Your email is on its way.</div>
-                <div className="ag-sent-actions">
-                  <button className="ag-send-btn ghost" onClick={openCompose}>New email</button>
-                  <button className="ag-send-btn" onClick={() => { tap(); setReplyThreadId(null); setEmailTab('inbox'); }}>Done</button>
-                </div>
-              </div>
-            ) : (
+            : (
               <>
                 {replyThreadId ? (
                   // A reply always goes from the mailbox that received the
@@ -2879,27 +2882,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 {sendState === 'err' && <div className="ag-send-err">Couldn’t send — check the address and try again.</div>}
                 <button
                   className="ag-send-btn"
-                  onClick={() => { tap(); setSendState('confirm'); }}
-                  disabled={!validTo || sendState === 'sending' || !bodyText.trim()}
+                  onClick={doSend}
+                  disabled={!validTo || !bodyText.trim()}
                 >
-                  {sendState === 'sending' ? 'Sending…' : replyThreadId ? 'Send reply' : 'Send'}
+                  {replyThreadId ? 'Send reply' : 'Send'}
                 </button>
               </>
             )}
-
-          {sendState === 'confirm' && (
-            <>
-              <div className="ag-confirm-scrim" onClick={() => { tap(); setSendState('idle'); }} />
-              <div className="ag-confirm" role="dialog" aria-label="Confirm send">
-                <div className="ag-confirm-title">{replyThreadId ? 'Send this reply?' : 'Send this email?'}</div>
-                <div className="ag-confirm-sub">To {to.trim()}{subject.trim() ? ` · ${subject.trim()}` : ''}</div>
-                <div className="ag-confirm-actions">
-                  <button className="ag-confirm-cancel" onClick={() => { tap(); setSendState('idle'); }}>Cancel</button>
-                  <button className="ag-confirm-send" onClick={doSend}>Send</button>
-                </div>
-              </div>
-            </>
-          )}
         </div>
       ) : (
         // mail workspace home (action grid)
