@@ -767,6 +767,23 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .ag-wh-modal-x { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 2px; display: grid; place-items: center; }
 .ag-wh-modal-lbl { font-size: var(--fs-caption); font-weight: 700; color: var(--text-dim); margin-top: 4px; }
 .ag-dom-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+/* ---- Domains index (Resend-style table: toolbar + header row + rows) ---- */
+.ag-domx-bar { display: flex; align-items: stretch; gap: 10px; }
+.ag-domx-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 10px; padding: 0 12px; color: var(--text-faint); }
+.ag-domx-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text); font: inherit; font-size: var(--fs-body-s); padding: 10px 0; }
+.ag-domx-search input::placeholder { color: var(--text-faint); }
+.ag-domx-search:focus-within { border-color: rgba(255, 255, 255, 0.3); }
+.ag-domx-filter { flex: 0 0 auto; width: auto; }
+.ag-domx-addbtn { width: auto; flex: 0 0 auto; padding: 0 15px; white-space: nowrap; }
+.ag-domx-table { border: 1px solid var(--glass-edge); border-radius: 12px; overflow: hidden; margin-top: 12px; }
+.ag-domx-hd { display: grid; grid-template-columns: 1fr 128px 104px; gap: 10px; padding: 9px 14px; background: rgba(255, 255, 255, 0.045); color: var(--text-faint); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.ag-domx-row { display: grid; grid-template-columns: 1fr 128px 104px; gap: 10px; align-items: center; width: 100%; padding: 12px 14px; background: none; border: none; border-top: 1px solid rgba(255, 255, 255, 0.05); font: inherit; text-align: left; cursor: pointer; color: var(--text); transition: background 120ms ease; }
+.ag-domx-row:hover { background: rgba(255, 255, 255, 0.04); }
+.ag-domx-dom { display: flex; align-items: center; gap: 10px; min-width: 0; font-weight: 600; font-size: var(--fs-body-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-domx-dom .ag-dom-ic { width: 30px; height: 30px; border-radius: 8px; }
+.ag-domx-created { color: var(--text-dim); font-size: var(--fs-caption); }
+.ag-domx-none { padding: 22px 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); color: var(--text-faint); font-size: var(--fs-footnote); text-align: center; }
+.ag-domx-count { margin-top: 10px; color: var(--text-faint); font-size: var(--fs-caption); }
 .ag-dom { background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; overflow: hidden; transition: border-color .15s; }
 .ag-dom.open { border-color: rgba(255, 255, 255, 0.16); }
 .ag-dom-row { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px 13px; background: none; border: none; font: inherit; text-align: left; cursor: pointer; }

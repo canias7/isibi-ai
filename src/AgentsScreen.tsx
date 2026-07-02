@@ -467,6 +467,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [domBusy, setDomBusy] = useState(false); // add in flight
   const [domErr, setDomErr] = useState('');      // add error message
   const [domOpen, setDomOpen] = useState<string | null>(null); // domain whose detail page is open
+  const [domQ, setDomQ] = useState('');                        // domains list: search text
+  const [domFilter, setDomFilter] = useState<'all' | 'verified' | 'pending'>('all');
+  const [domAddOpen, setDomAddOpen] = useState(false);         // domains list: add-row shown
   const [domRecOpen, setDomRecOpen] = useState<string | null>(null); // expanded DNS record group (DKIM/SPF/DMARC) in the detail
   const [domVerifying, setDomVerifying] = useState('');  // domain currently being re-verified
   const [domRecords, setDomRecords] = useState<Record<string, DnsRecord[]>>({}); // per-domain DNS records
@@ -2174,28 +2177,47 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     </div>
                     {domErr && <div className="ag-send-err">{domErr}</div>}
                   </div>
-                ) : (
-                  <>
-                    <div className="ag-dom-add">
-                      <input className="ag-field" placeholder="yourbrand.com" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }} />
-                      <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add domain'}</button>
-                    </div>
-                    {domErr && <div className="ag-send-err">{domErr}</div>}
-                    <div className="ag-dom-list">
-                    {domains.map((d) => (
-                      <button className="ag-dom ag-dom-row" onClick={() => openDom(d.domain)} key={d.domain}>
-                        <span className="ag-dom-ic"><IconGlobe size={18} /></span>
-                        <span className="ag-dom-info">
-                          <span className="ag-dom-name">{d.domain}</span>
-                          <span className="ag-dom-sub">{d.verified ? 'Sending enabled' : 'Awaiting DNS records'}</span>
-                        </span>
-                        <span className={`ag-badge is-${d.verified ? 'ok' : 'wait'}`}><i className="ag-dot" />{d.verified ? 'Verified' : 'Pending'}</span>
-                        <span className="ag-dom-chev">›</span>
-                      </button>
-                    ))}
-                    </div>
-                  </>
-                )}
+                ) : (() => {
+                  const q = domQ.trim().toLowerCase();
+                  const shown = domains.filter((d) =>
+                    (!q || d.domain.toLowerCase().includes(q)) &&
+                    (domFilter === 'all' || (domFilter === 'verified' ? d.verified : !d.verified)));
+                  return (
+                    <>
+                      <div className="ag-domx-bar">
+                        <label className="ag-domx-search">
+                          <IconSearch size={14} />
+                          <input placeholder="Search…" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domQ} onChange={(e) => setDomQ(e.target.value)} />
+                        </label>
+                        <select className="ag-tpl-select ag-domx-filter" value={domFilter} onChange={(e) => setDomFilter(e.target.value as 'all' | 'verified' | 'pending')}>
+                          <option value="all">All statuses</option>
+                          <option value="verified">Verified</option>
+                          <option value="pending">Pending</option>
+                        </select>
+                        <button className="ag-send-btn ag-domx-addbtn" onClick={() => { tap(); setDomAddOpen((v) => !v); setDomErr(''); }}>+ Add domain</button>
+                      </div>
+                      {domAddOpen && (
+                        <div className="ag-dom-add">
+                          <input className="ag-field" placeholder="yourbrand.com" autoFocus autoCapitalize="none" autoCorrect="off" spellCheck={false} value={domNew} onChange={(e) => { setDomNew(e.target.value); if (domErr) setDomErr(''); }} onKeyDown={(e) => { if (e.key === 'Enter') addDomain(); }} />
+                          <button className="ag-send-btn" disabled={domBusy || !domNew.trim()} onClick={addDomain}>{domBusy ? 'Adding…' : 'Add'}</button>
+                        </div>
+                      )}
+                      {domErr && <div className="ag-send-err">{domErr}</div>}
+                      <div className="ag-domx-table">
+                        <div className="ag-domx-hd"><span>Domain</span><span>Status</span><span>Created</span></div>
+                        {shown.map((d) => (
+                          <button className="ag-domx-row" onClick={() => openDom(d.domain)} key={d.domain}>
+                            <span className="ag-domx-dom"><span className="ag-dom-ic"><IconGlobe size={16} /></span>{d.domain}</span>
+                            <span><span className={`ag-badge is-${d.verified ? 'ok' : 'wait'}`}><i className="ag-dot" />{d.verified ? 'Verified' : 'Pending'}</span></span>
+                            <span className="ag-domx-created">{d.created_at ? relTime(new Date(d.created_at).getTime()) : '—'}</span>
+                          </button>
+                        ))}
+                        {shown.length === 0 && <div className="ag-domx-none">No domains match.</div>}
+                      </div>
+                      <div className="ag-domx-count">{shown.length === domains.length ? `${domains.length} domain${domains.length === 1 ? '' : 's'}` : `${shown.length} of ${domains.length} domains`}</div>
+                    </>
+                  );
+                })()}
               </div>
               )
             ) : sendraTab === 'emails' ? (
