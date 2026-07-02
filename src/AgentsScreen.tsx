@@ -1530,7 +1530,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
         subject: reading.subject, time: reading.time, unread: reading.unread,
         draft: reading.draft, body: reading.snippet || '',
       }} />
-      {mailConnected ? (
+      {/* Mobile only — the desktop reading pane carries no bottom buttons. */}
+      {mailConnected && !splitMail ? (
         <div className="ag-reader-actions" style={{ display: 'flex', gap: 10 }}>
           {(reading.threadId || reading.email) && (
             <button className="ag-send-btn ag-reply-btn" style={{ flex: 1 }} onClick={openReply}>Reply</button>
