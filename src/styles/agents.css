@@ -710,7 +710,9 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .ag-dom-empty .ag-ce-sub { margin: 0; max-width: 320px; }
 /* Add-endpoint bar (sits above the endpoint list). */
 .ag-wh-bar { display: flex; justify-content: flex-end; margin-bottom: 4px; }
-.ag-wh-bar .ag-send-btn, .ag-wh-empty .ag-send-btn, .ag-auto-empty .ag-send-btn { display: inline-flex; align-items: center; gap: 6px; width: auto; }
+.ag-wh-bar .ag-send-btn, .ag-wh-empty .ag-send-btn, .ag-auto-empty .ag-send-btn,
+.ag-camp-empty .ag-send-btn, .ag-tpl-empty .ag-send-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; padding: 14px 22px; }
+.ag-camp-empty, .ag-tpl-empty { padding-top: 48px; }
 /* Automations first-run: illustrated empty state (matches Contacts/Domains/Webhooks). */
 .ag-auto-empty { padding-top: 48px; }
 .ag-wh-ev-lbl { font-size: var(--fs-caption); font-weight: 600; color: var(--text-dim); }

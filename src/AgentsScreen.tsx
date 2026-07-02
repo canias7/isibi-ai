@@ -1951,11 +1951,18 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 </div>
               ) : (
                 <>
-                  <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
-                  <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
                   {campList.length === 0 ? (
-                    <div className="ag-empty" style={{ marginTop: 12 }}>No campaigns yet. Write once and send to your whole list — straight from your mailbox.</div>
+                    <div className="ag-dom-empty ag-camp-empty">
+                      <div className="ag-dom-empty-ic"><IconWaveform size={30} /></div>
+                      <div className="ag-dom-empty-ttl">No campaigns yet</div>
+                      <p className="ag-ce-sub">Write once and send to your whole list — straight from your mailbox.</p>
+                      <button className="ag-send-btn" onClick={openCampNew}><IconPlus size={16} /> New email campaign</button>
+                      <button className="ag-back-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
+                    </div>
                   ) : (
+                    <>
+                    <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
+                    <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
                     <div className="ag-camp-list">
                       {campList.map((c) => (
                         <button className="ag-camp" key={c.id} onClick={() => openCampStats(c)}>
@@ -1971,8 +1978,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         </button>
                       ))}
                     </div>
+                    </>
                   )}
-                  <p className="ag-foot">SMS campaigns (Twilio) are coming next.</p>
+                  {campList.length > 0 && <p className="ag-foot">SMS campaigns (Twilio) are coming next.</p>}
                 </>
               )
             ) : sendraTab === 'templates' ? (
@@ -2072,10 +2080,16 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 )
               ) : (
                 <>
-                  <button className="ag-send-btn" onClick={startAI}>+ New template</button>
                   {tplList.length === 0 ? (
-                    <div className="ag-empty" style={{ marginTop: 12 }}>No templates yet. Describe the email you want and let Sendra write it — then reuse it in any campaign.</div>
+                    <div className="ag-dom-empty ag-tpl-empty">
+                      <div className="ag-dom-empty-ic"><IconDoc size={30} /></div>
+                      <div className="ag-dom-empty-ttl">No templates yet</div>
+                      <p className="ag-ce-sub">Describe the email you want and let Sendra write it — then reuse it in any campaign.</p>
+                      <button className="ag-send-btn" onClick={startAI}><IconPlus size={16} /> New template</button>
+                    </div>
                   ) : (
+                    <>
+                    <button className="ag-send-btn" onClick={startAI}>+ New template</button>
                     <div className="ag-camp-list">
                       {tplList.map((t) => {
                         const nm = t.name || t.subject || 'Template';
@@ -2092,6 +2106,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         );
                       })}
                     </div>
+                    </>
                   )}
                 </>
               )
