@@ -2096,7 +2096,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 };
                 return (
                   <div className="ag-compose">
-                    <button className="ag-back-link" onClick={() => { tap(); setDomOpen(null); }}>‹ Domains</button>
+                    <button className="ag-back-link ag-back-arrow" onClick={() => { tap(); setDomOpen(null); }}><IconArrowLeft size={15} /> All domains</button>
                     <div className="ag-emd-hd">
                       <span className="ag-em-ava ag-emd-ava"><IconGlobe size={20} /></span>
                       <span className="ag-emd-hd-meta"><span className="ag-emd-hd-lbl">Domain</span><span className="ag-emd-hd-to">{d.domain}</span></span>
