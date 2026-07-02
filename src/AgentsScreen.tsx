@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   IconArrowLeft, IconCompose, IconLayers, IconWaveform,
   IconConnectors, IconClock, IconInbox, IconRefresh, IconCheck, IconContacts,
-  IconDoc, IconChat, IconPlus, IconArrowUp, IconX, IconCopy,
+  IconDoc, IconPlus, IconArrowUp, IconX, IconCopy,
   IconCalendar, IconWebhook, IconChart, IconGlobe, IconBolt, IconSearch,
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchEmailHtml, fetchMailboxProfile, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchEmailHtml, fetchMailboxProfile, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, providerOf, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 import { SENDRA_TOOLS, type SendraTab, type SendraNavId, type MktNavRequest } from './marketingNav';
@@ -28,8 +28,7 @@ type CommsId = 'gmail' | 'm365' | 'telegram';
 
 // Sendra home tabs + their header copy.
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
-  texts: { t: 'Text', s: 'Send an SMS' },
-  campaigns: { t: 'Campaigns', s: 'Email & SMS to your lists' },
+  campaigns: { t: 'Campaigns', s: 'Email to your lists' },
   templates: { t: 'Templates', s: 'Reusable messages' },
   domains: { t: 'Domains', s: 'Send from your own address' },
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
@@ -392,22 +391,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [tgMsgsState, setTgMsgsState] = useState<Loadable>('idle');
   const [tgReply, setTgReply] = useState('');
   const [tgSending, setTgSending] = useState(false);
-  // SMS composer (the platform's built-in Twilio sender)
-  const [smsTo, setSmsTo] = useState('');
-  const [smsBody, setSmsBody] = useState('');
-  const [smsState, setSmsState] = useState<SendState>('idle');
-  const [smsErr, setSmsErr] = useState('');
-  // SMS: platform-provisioned Twilio number (per user, bought in-app)
-  const [smsReady, setSmsReady] = useState<boolean | null>(null); // null = loading
-  const [smsNumber, setSmsNumber] = useState<string | null>(null);
-  const [numArea, setNumArea] = useState('');
-  const [numResults, setNumResults] = useState<SmsNumber[]>([]);
-  const [numBusy, setNumBusy] = useState(false);   // searching
-  const [numErr, setNumErr] = useState('');
-  const [buyingNum, setBuyingNum] = useState('');  // phoneNumber being purchased
-  const [relArmed, setRelArmed] = useState(false); // Release: first tap arms, second confirms
-  const [relBusy, setRelBusy] = useState(false);
-  const relTimerRef = useRef<number | null>(null);
   // Email campaign builder
   const [campNew, setCampNew] = useState(false);
   const [campApp, setCampApp] = useState<'gmail' | 'outlook'>('gmail');
@@ -544,7 +527,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     return () => {
       mountedRef.current = false;
       if (domRmTimerRef.current) { clearTimeout(domRmTimerRef.current); domRmTimerRef.current = null; }
-      if (relTimerRef.current) { clearTimeout(relTimerRef.current); relTimerRef.current = null; }
       if (armTimerRef.current) { clearTimeout(armTimerRef.current); armTimerRef.current = null; }
     };
   }, []);
@@ -793,13 +775,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   useEffect(() => {
     if (agent !== 'email' || commsApp !== null) return;
     if ((sendraTab === 'campaigns' && !campNew) || sendraTab === 'schedule') listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
-    if (sendraTab === 'texts') smsStatus().then((s) => {
-      if (!mountedRef.current) return;
-      // A transient status failure must not show the purchase flow to a number
-      // owner — leave the loading state and surface a retry instead.
-      if (s.failed) { setSmsReady(null); setNumErr('Couldn’t load your texting status — reopen the tab to retry.'); return; }
-      setSmsReady(s.ready); setSmsNumber(s.number); setNumErr('');
-    });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') loadRequestLogs();
     if (sendraTab === 'emails') { setMsgBusy(true); mailerMessages().then((m) => { if (mountedRef.current) { setMsgList(m); setMsgBusy(false); } }).catch(() => { if (mountedRef.current) setMsgBusy(false); }); }
@@ -855,7 +830,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (id === 'inbox') { openInbox(); return; }
     if (id === 'contacts') { openContacts(); return; }
     tap(); setNote('');
-    if (id === 'texts') { setSmsState('idle'); setSmsErr(''); }
     if (id === 'webhook') loadWebhooks();
     // logs/deliver are loaded by the tab-open effect below — don't also load here
     // (a double fetch raced the busy flags and cost two round-trips per open).
@@ -925,7 +899,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     const tags = cForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!EMAIL_RE.test(email)) { setCFormErr('A valid email is required.'); return; }
     // Light phone sanity: if present it must contain a plausible number of digits,
-    // so free text like "call after 5pm" doesn't silently break later SMS use.
+    // so free text like "call after 5pm" doesn't get stored as a phone number.
     if (phone) { const digits = phone.replace(/\D/g, ''); if (digits.length < 7 || digits.length > 15) { setCFormErr('That phone number doesn’t look right — leave it blank or use digits (7–15).'); return; } }
     // No two contacts can share an email (checked here for an instant message; the
     // server + a DB unique index enforce it for real).
@@ -1131,76 +1105,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
       })
       .catch(() => { /* keep the draft so they can retry */ })
       .finally(() => { if (mountedRef.current) setTgSending(false); });
-  };
-
-  // SMS send (platform Twilio). Errors come back as codes -> friendly copy.
-  const smsFriendly = (code: string): string => {
-    if (/sms_unset/i.test(code)) return 'Texting isn’t switched on yet — add the Twilio keys on the server.';
-    if (/bad_number/i.test(code)) return 'That number doesn’t look right — include the country code, e.g. +1 555 123 4567.';
-    if (/missing_body/i.test(code)) return 'Type a message first.';
-    if (/too_long/i.test(code)) return 'That message is too long.';
-    if (/rate_limited/i.test(code)) return 'Daily text limit reached — try again tomorrow.';
-    if (/send_failed/i.test(code)) return 'Couldn’t send — check the number and try again.';
-    return 'Couldn’t send — please try again.';
-  };
-  const doSearchNumbers = async () => {
-    if (numBusy) return;
-    tap(); setNumBusy(true); setNumErr(''); setNumResults([]);
-    try {
-      const r = await searchSmsNumbers(numArea.trim() || undefined);
-      if (!mountedRef.current) return;
-      if (r.error) setNumErr(r.error === 'sms_unset' ? 'SMS isn’t set up on this workspace yet.' : 'Couldn’t search numbers — try again.');
-      else if (!r.numbers.length) setNumErr('No numbers found — try a different area code, or leave it blank.');
-      else setNumResults(r.numbers);
-    } catch { if (mountedRef.current) setNumErr('Something went wrong — try again.'); }
-    finally { if (mountedRef.current) setNumBusy(false); }
-  };
-  const doBuyNumber = async (phone: string) => {
-    if (buyingNum) return;
-    tap(); setBuyingNum(phone); setNumErr('');
-    try {
-      const r = await buySmsNumber(phone);
-      if (!mountedRef.current) return;
-      if (r.error) {
-        setNumErr(
-          r.error === 'already_provisioned' ? 'You already have a number — release it first to get a new one.'
-            : r.error === 'sms_unset' ? 'SMS isn’t set up on this workspace yet.'
-              : 'Couldn’t get that number — it may have just been taken. Try another.');
-      } else { setSmsReady(true); setSmsNumber(r.number || phone); setNumResults([]); setNumArea(''); }
-    } catch { if (mountedRef.current) setNumErr('Something went wrong — try again.'); }
-    finally { if (mountedRef.current) setBuyingNum(''); }
-  };
-  // Releasing the number deletes the Twilio number + closes the subaccount and is
-  // irreversible — arm on the first tap, act on the second, and only flip the UI
-  // to "get a number" when the release actually succeeded (else the old number
-  // keeps billing behind a purchase screen).
-  const doReleaseNumber = async () => {
-    tap();
-    if (!relArmed) {
-      setRelArmed(true); setNumErr('');
-      if (relTimerRef.current) clearTimeout(relTimerRef.current);
-      relTimerRef.current = window.setTimeout(() => { if (mountedRef.current) setRelArmed(false); }, 3500);
-      return;
-    }
-    if (relTimerRef.current) { clearTimeout(relTimerRef.current); relTimerRef.current = null; }
-    setRelArmed(false); setRelBusy(true); setNumErr('');
-    try {
-      await releaseSmsNumber();
-      if (mountedRef.current) { setSmsReady(false); setSmsNumber(null); }
-    } catch {
-      if (mountedRef.current) setNumErr('Couldn’t release the number — it’s still active. Try again in a moment.');
-    } finally { if (mountedRef.current) setRelBusy(false); }
-  };
-  // Match the server's E.164 rule (mailer/sms strips separators then requires
-  // +<8-15 digits>) so a number the server will reject is caught before sending.
-  const validSmsTo = /^\+\d{8,15}$/.test(smsTo.trim().replace(/[\s().-]/g, ''));
-  const doSendSms = () => {
-    if (!validSmsTo || !smsBody.trim() || smsState === 'sending') return;
-    tap();
-    setSmsState('sending'); setSmsErr('');
-    sendSms(smsTo.trim(), smsBody.trim())
-      .then(() => { if (mountedRef.current) { setSmsState('sent'); setSmsBody(''); } })
-      .catch((e) => { if (mountedRef.current) { setSmsState('err'); setSmsErr(smsFriendly(String((e as Error)?.message || ''))); } });
   };
 
   // ---- Email campaign builder ----
@@ -2261,7 +2165,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     </div>
                     </>
                   )}
-                  {campList.length > 0 && <p className="ag-foot">SMS campaigns (Twilio) are coming next.</p>}
                 </>
               )
             ) : sendraTab === 'templates' ? (
@@ -2390,64 +2293,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     </>
                   )}
                 </>
-              )
-            ) : sendraTab === 'texts' ? (
-              smsReady === null ? (
-                numErr
-                  ? <button className="ag-send-btn ghost" style={{ marginTop: 12 }} onClick={() => { tap(); setNumErr(''); smsStatus().then((s) => { if (!mountedRef.current) return; if (s.failed) { setNumErr('Still couldn’t load — check your connection.'); return; } setSmsReady(s.ready); setSmsNumber(s.number); }); }}>Couldn’t load texting — tap to retry</button>
-                  : <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
-              ) : !smsReady ? (
-                <div className="ag-compose">
-                  <p className="ag-foot" style={{ textAlign: 'left', margin: '0 0 2px' }}>Get a phone number to send texts from. Pick an area code (optional) and search.</p>
-                  <div className="ag-num-search">
-                    <input className="ag-field" type="tel" inputMode="numeric" maxLength={5} placeholder="Area code (e.g. 415)" value={numArea} onChange={(e) => { setNumArea(e.target.value.replace(/\D/g, '')); if (numErr) setNumErr(''); }} />
-                    <button className="ag-send-btn" disabled={numBusy} onClick={doSearchNumbers}>{numBusy ? 'Searching…' : 'Search'}</button>
-                  </div>
-                  {numErr && <div className="ag-send-err">{numErr}</div>}
-                  {numResults.length > 0 && (
-                    <div className="ag-num-list">
-                      {numResults.map((n) => (
-                        <div className="ag-num" key={n.phoneNumber}>
-                          <div className="ag-num-info">
-                            <span className="ag-num-tel">{n.phoneNumber}</span>
-                            <span className="ag-num-loc">{[n.locality, n.region].filter(Boolean).join(', ')}</span>
-                          </div>
-                          <button className="ag-num-get" disabled={!!buyingNum} onClick={() => doBuyNumber(n.phoneNumber)}>{buyingNum === n.phoneNumber ? 'Getting…' : 'Get'}</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <p className="ag-foot">Your number is provisioned instantly. Sending to any US number needs carrier registration (10DLC) — coming next.</p>
-                </div>
-              ) : smsState === 'sent' ? (
-                <div className="ag-sent">
-                  <span className="ag-sent-ic"><IconCheck size={26} /></span>
-                  <div className="ag-sent-title">Sent</div>
-                  <div className="ag-sent-sub">Your text is on its way.</div>
-                  <div className="ag-sent-actions">
-                    <button className="ag-send-btn ghost" onClick={() => { tap(); setSmsState('idle'); }}>New text</button>
-                    <button className="ag-send-btn" onClick={() => { tap(); setSendraTab('emails'); }}>Done</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="ag-compose">
-                  <div className="ag-sms-conn"><span>✓ {smsNumber}</span><button className={relArmed ? 'armed' : ''} disabled={relBusy} onClick={doReleaseNumber}>{relBusy ? 'Releasing…' : relArmed ? 'Tap again to release' : 'Release'}</button></div>
-                  {numErr && <div className="ag-send-err">{numErr}</div>}
-                  <input
-                    className="ag-field" type="tel" inputMode="tel" autoCapitalize="none" autoCorrect="off"
-                    placeholder="To (+1 555 123 4567)" value={smsTo}
-                    onChange={(e) => { setSmsTo(e.target.value); if (smsState === 'err') setSmsState('idle'); }}
-                  />
-                  <textarea
-                    className="ag-field ag-body" placeholder="Type your message…" maxLength={1600} value={smsBody}
-                    onChange={(e) => { setSmsBody(e.target.value); if (smsState === 'err') setSmsState('idle'); }}
-                  />
-                  {smsState === 'err' && <div className="ag-send-err">{smsErr}</div>}
-                  <button className="ag-send-btn" onClick={doSendSms} disabled={!validSmsTo || !smsBody.trim() || smsState === 'sending'}>
-                    {smsState === 'sending' ? 'Sending…' : 'Send text'}
-                  </button>
-                  <p className="ag-foot">Texts send from {smsNumber}. Standard SMS rates apply.</p>
-                </div>
               )
             ) : sendraTab === 'domains' ? (
               (() => { const sel = domOpen ? domains.find((x) => x.domain === domOpen) : null; return sel; })() ? (() => {
@@ -3406,7 +3251,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
           <nav className="ag-drawer">
             <div className="ag-drawer-head">
               <img className="ag-drawer-logo" src={SENDRA_LOGO} alt="" aria-hidden />
-              <span className="ag-drawer-brand">Sendra<span>Email &amp; SMS</span></span>
+              <span className="ag-drawer-brand">Sendra<span>Email</span></span>
               <button className="ag-drawer-x" onClick={() => { tap(); setDrawerOpen(false); }} aria-label="Close menu"><IconX size={18} /></button>
             </div>
             <div className="ag-drawer-nav">

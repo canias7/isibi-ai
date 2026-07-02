@@ -1,5 +1,5 @@
 import {
-  IconInbox, IconArrowUp, IconContacts, IconChat, IconWaveform, IconClock,
+  IconInbox, IconArrowUp, IconContacts, IconWaveform, IconClock,
   IconChart, IconGlobe, IconDoc, IconWebhook, IconCalendar,
   IconHome, IconPhotos, IconFilm, IconUser, IconCompose, IconPlus,
 } from './icons';
@@ -11,7 +11,7 @@ import {
 
 type IconCmp = typeof IconCompose;
 
-export type SendraTab = 'texts' | 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'emails' | 'logs' | 'deliver' | 'automations';
+export type SendraTab = 'campaigns' | 'templates' | 'domains' | 'schedule' | 'webhook' | 'emails' | 'logs' | 'deliver' | 'automations';
 export type SendraNavId = SendraTab | 'inbox' | 'contacts';
 export type SocialNavId = 'landing' | 'gallery' | 'studio' | 'more' | 'post';
 
@@ -24,8 +24,7 @@ export const SENDRA_TOOLS: { id: SendraNavId; name: string; desc: string; Icon: 
   { id: 'inbox', name: 'Inbox', desc: 'All your mail', Icon: IconInbox },
   { id: 'emails', name: 'Emails', desc: 'Sent emails', Icon: IconArrowUp },
   { id: 'contacts', name: 'Contacts', desc: 'Your people', Icon: IconContacts },
-  { id: 'texts', name: 'Text', desc: 'Send an SMS', Icon: IconChat },
-  { id: 'campaigns', name: 'Campaigns', desc: 'Email & SMS', Icon: IconWaveform },
+  { id: 'campaigns', name: 'Campaigns', desc: 'Email your lists', Icon: IconWaveform },
   { id: 'logs', name: 'Logs', desc: 'Every email sent', Icon: IconClock },
   { id: 'deliver', name: 'Deliverability', desc: 'Are emails landing?', Icon: IconChart },
   { id: 'domains', name: 'Domains', desc: 'Send from your address', Icon: IconGlobe },
