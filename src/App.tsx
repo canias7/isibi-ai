@@ -65,12 +65,12 @@ function HubScene() {
   }, []);
   return (
     <div className="hub-scene" ref={ref} aria-hidden="true">
-      <Wall />
+      <Wall quiet />
       {FILMS.map((f, i) => (
         <div className={`lp-fly hub-f${i + 1}`} data-depth={f.depth} key={f.cls}>
           <div className="lp-orbit">
             <div className="lp-card">
-              <video src={f.src} muted playsInline loop autoPlay preload="metadata" />
+              <video src={f.src} poster={f.poster} muted playsInline loop autoPlay preload="metadata" />
               <span className="lp-wm">gofarther.dev</span>
               <div className="lp-cap"><div className="lp-lbl">✦ PROMPT</div><p>{f.prompt}</p></div>
             </div>

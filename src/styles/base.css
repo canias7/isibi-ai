@@ -297,7 +297,10 @@ input, textarea { caret-color: var(--brand); }
 @media (min-width: 900px) {
   .mkt-word { font-size: 6.5rem; letter-spacing: -0.04em; position: relative; z-index: 2; }
 
-  .hub-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  /* Start below the app header (~52px tall): otherwise the wall's top row of
+     labels/thumbnails renders straight into the title bar. overflow:hidden
+     clips the wall's negative-top overflow at this edge. */
+  .hub-scene { position: fixed; inset: 0; top: calc(env(safe-area-inset-top) + 52px); z-index: 0; overflow: hidden; }
   /* clear the middle: a dark radial pool the cards never enter */
   .hub-scene::after {
     content: "";

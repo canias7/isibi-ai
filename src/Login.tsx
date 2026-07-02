@@ -46,7 +46,7 @@ function BrandPanel() {
         <div className={`lp-fly ${f.cls}`} data-depth={f.depth} key={f.cls}>
           <div className="lp-orbit">
             <div className="lp-card">
-              <video src={f.src} muted playsInline loop autoPlay preload="metadata" />
+              <video src={f.src} poster={f.poster} muted playsInline loop autoPlay preload="metadata" />
               <span className="lp-wm">gofarther.dev</span>
               <div className="lp-cap"><div className="lp-lbl">✦ PROMPT</div><p>{f.prompt}</p></div>
             </div>
