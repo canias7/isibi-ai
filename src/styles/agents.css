@@ -86,6 +86,37 @@
      the reader's flex column that makes them shrink to content width (~the
      iframe's 300px default). Full width up to a wide reading cap instead. */
   .ag-split-read .ag-stage > * { width: 100%; max-width: 960px; }
+
+  /* Reader chrome redesign: no grey card. The header is clean typography on
+     the app's dark background, the subject is a real title, and the email
+     itself floats as a rounded white sheet with a deep soft shadow. */
+  .ag-split-read .gf-msg,
+  .ag-split-read .ag-reader .gf-msg.gf-gmail,
+  .ag-split-read .ag-reader .gf-msg.gf-outlook {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 4px 2px 0;
+  }
+  .ag-split-read .gf-msg-head { border-bottom: 0; padding-bottom: 4px; }
+  .ag-split-read .gf-msg-head .gf-avatar { width: 46px; height: 46px; }
+  .ag-split-read .gf-msg .gf-msg-subject {
+    color: #fff;
+    font-size: 1.4118rem;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    margin: 0.7rem 0 1rem;
+  }
+  .ag-split-read .gf-body-wrap {
+    margin-top: 0;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+  .ag-split-read .gf-body-frame { border-radius: 16px; }
+  .ag-split-read .ag-reader-actions { margin-top: 16px; }
   .ag-split-empty {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 10px; color: var(--text-dim); font-size: var(--fs-body-s);
