@@ -2854,7 +2854,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   {mergedContacts.length > 0 && (
                     <button className="ag-to-pick" onClick={() => { tap(); setToPicker((v) => !v); }} aria-label="Choose from contacts"><IconContacts size={18} /></button>
                   )}
-                </div>
                 {toPicker && mergedContacts.length > 0 && (() => {
                   const q = to.trim().toLowerCase();
                   const matches = mergedContacts.filter((c) => c.email && (!q || `${c.name} ${c.email}`.toLowerCase().includes(q))).slice(0, 30);
@@ -2869,6 +2868,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     </div>
                   ) : null;
                 })()}
+                </div>
                 {!showCc ? (
                   <button
                     className="ag-cc-toggle"
