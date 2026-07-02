@@ -290,7 +290,9 @@ export interface Reputation { accepted: number; delivered: number; bounced: numb
 export async function getDeliverability(): Promise<{ reputation: Reputation }> {
   const empty = { accepted: 0, delivered: 0, bounced: 0, complained: 0, bounceRate: 0, complaintRate: 0, sent30: 0 };
   const { data, error } = await supabase.functions.invoke('campaigns', { body: { action: 'deliverability' } });
-  if (error) return { reputation: empty };
+  // Throw on a real fetch failure so the caller can show an error instead of
+  // rendering all-zeros as "No sends yet" and wiping previously-loaded data.
+  if (error) throw new Error(error.message || 'Request failed');
   const d = (data || {}) as { reputation?: Reputation };
   return { reputation: d.reputation || empty };
 }

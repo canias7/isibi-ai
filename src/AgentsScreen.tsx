@@ -177,20 +177,19 @@ function WhEventPicker({ value, onToggle }: { value: string[]; onToggle: (id: st
 
 // Emails-page filters. Statuses mirror what individual sends actually report
 // (the `messages` row's status), each with a Resend-style colored dot.
+// Only statuses a transactional message row can actually hold (see the mailer /
+// mail-events functions): sent | failed | delivered | complained | bounced |
+// soft_bounced. Filters for statuses that never appear (opened/clicked/queued/…)
+// were removed — selecting one always returned "no emails match", implying the
+// user had none rather than that the filter was dead.
 const MSG_STATUS_OPTS: { id: string; label: string; dot?: string }[] = [
   { id: 'all', label: 'All statuses' },
-  { id: 'bounced', label: 'Bounced', dot: '#ff6b6b' },
-  { id: 'canceled', label: 'Canceled', dot: '#9298a2' },
-  { id: 'clicked', label: 'Clicked', dot: '#8b5cf6' },
-  { id: 'complained', label: 'Complained', dot: '#e0951f' },
+  { id: 'sent', label: 'Sent', dot: '#9298a2' },
   { id: 'delivered', label: 'Delivered', dot: '#34d399' },
   { id: 'soft_bounced', label: 'Delivery delayed', dot: '#fbbf24' },
+  { id: 'bounced', label: 'Bounced', dot: '#ff6b6b' },
+  { id: 'complained', label: 'Complained', dot: '#e0951f' },
   { id: 'failed', label: 'Failed', dot: '#ff6b6b' },
-  { id: 'opened', label: 'Opened', dot: '#3b82f6' },
-  { id: 'scheduled', label: 'Scheduled', dot: '#9298a2' },
-  { id: 'sent', label: 'Sent', dot: '#9298a2' },
-  { id: 'queued', label: 'Queued', dot: '#9298a2' },
-  { id: 'suppressed', label: 'Suppressed', dot: '#9298a2' },
 ];
 // Placeholder until API keys exist — the menu is here for parity with Resend;
 // once keys are real, populate this and filter by the sending key.
@@ -203,6 +202,14 @@ const MSG_RANGE_OPTS: { id: string; label: string; days: number }[] = [
   { id: '30d', label: 'Last 30 days', days: 30 },
   { id: 'all', label: 'All time', days: 0 },
 ];
+// Cutoff (ms) for a range filter. "Today" means the calendar day, not a rolling
+// 24h window — otherwise something sent yesterday evening shows under Today, and
+// the label is simply wrong in every timezone.
+function rangeCutoffMs(id: string, days: number): number {
+  if (days === 0) return 0;
+  if (id === 'today') { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  return Date.now() - days * 86400000;
+}
 
 // Logs page (API request log) filter options.
 const LOG_HTTP_OPTS: { id: string; label: string; dot?: string }[] = [
@@ -427,6 +434,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [msgOpen, setMsgOpen] = useState<SentEmail | null>(null); // selected email (detail view)
   const [msgDetail, setMsgDetail] = useState<SentEmail | null>(null); // fetched detail incl. body
   const [msgDetailBusy, setMsgDetailBusy] = useState(false);
+  const [msgDetailErr, setMsgDetailErr] = useState(false); // detail fetch failed (vs body genuinely absent)
+  const msgDetailSeqRef = useRef(0);
   const [logsQ, setLogsQ] = useState('');
   const [logsBusy, setLogsBusy] = useState(false);
   const [logRange, setLogRange] = useState<string>('30d');   // Logs date-range filter
@@ -436,6 +445,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // Deliverability insights (Deliverability tab)
   const [deliv, setDeliv] = useState<{ reputation: Reputation } | null>(null);
   const [delivBusy, setDelivBusy] = useState(false);
+  const [delivErr, setDelivErr] = useState(false);
   // Campaign views + the campaign "From" picker
   const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
   const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats; ab?: { a: { sent: number; opened: number; clicked: number }; b: { sent: number; opened: number; clicked: number } } | null } | null>(null);
@@ -793,7 +803,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') loadRequestLogs();
     if (sendraTab === 'emails') { setMsgBusy(true); mailerMessages().then((m) => { if (mountedRef.current) { setMsgList(m); setMsgBusy(false); } }).catch(() => { if (mountedRef.current) setMsgBusy(false); }); }
-    if (sendraTab === 'deliver') { setDelivBusy(true); getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); }); }
+    if (sendraTab === 'deliver') loadDeliver();
     // Verified domains feed the composer's "Send from" picker; the Domains tab needs the full list.
     if (sendraTab === 'campaigns' || sendraTab === 'domains' || sendraTab === 'automations') mailerListDomains().then((d) => { if (mountedRef.current) setDomains(d); });
     if (sendraTab === 'automations') loadAutomations();
@@ -847,8 +857,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     tap(); setNote('');
     if (id === 'texts') { setSmsState('idle'); setSmsErr(''); }
     if (id === 'webhook') loadWebhooks();
-    if (id === 'logs') { setLogsQ(''); loadRequestLogs(); }
-    if (id === 'deliver') loadDeliver();
+    // logs/deliver are loaded by the tab-open effect below — don't also load here
+    // (a double fetch raced the busy flags and cost two round-trips per open).
+    if (id === 'logs') setLogsQ('');
     if (id === 'domains') { setDomNew(''); setDomErr(''); loadDomains(); }
     // Return to the campaign list, not a stale stats/suppressions view left over
     // from a previous visit — but never yank a send that's still draining.
@@ -1509,8 +1520,12 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
   // ---- Deliverability (auth + reputation) ----
   const loadDeliver = () => {
-    setDelivBusy(true);
-    getDeliverability().then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } }).catch(() => { if (mountedRef.current) setDelivBusy(false); });
+    setDelivBusy(true); setDelivErr(false);
+    getDeliverability()
+      .then((d) => { if (mountedRef.current) { setDeliv(d); setDelivBusy(false); } })
+      // Surface the failure instead of leaving stale/empty stats that read as
+      // "No sends yet"; keep whatever was already loaded.
+      .catch(() => { if (mountedRef.current) { setDelivErr(true); setDelivBusy(false); } });
   };
   // Derive a display status from a recipient row (engagement is in the timestamps).
   // Transactional message status (mailer `messages`) -> pill.
@@ -1526,11 +1541,14 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
   // Open an email's detail view; fetch the full row (incl. stored body) in the background.
   const openMsg = (m: SentEmail) => {
-    tap(); setMsgOpen(m); setMsgDetail(null); setMsgDetailBusy(true);
+    tap(); setMsgOpen(m); setMsgDetail(null); setMsgDetailBusy(true); setMsgDetailErr(false);
+    const seq = ++msgDetailSeqRef.current;
     mailerMessage(m.id)
-      .then((d) => { if (mountedRef.current) setMsgDetail(d); })
-      .catch(() => {})
-      .finally(() => { if (mountedRef.current) setMsgDetailBusy(false); });
+      // Guard the open message: a slow fetch for A resolving after the user opened
+      // B must not paint A's body/headers onto B, nor clear B's busy state.
+      .then((d) => { if (mountedRef.current && msgDetailSeqRef.current === seq && d?.id === m.id) setMsgDetail(d); })
+      .catch(() => { if (mountedRef.current && msgDetailSeqRef.current === seq) setMsgDetailErr(true); })
+      .finally(() => { if (mountedRef.current && msgDetailSeqRef.current === seq) setMsgDetailBusy(false); });
   };
   const removeSup = async (email: string) => {
     tap();
@@ -2570,8 +2588,11 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 const events: { label: string; cls: string; at?: string | null; err?: string | null }[] = [];
                 if (m.sent_at || m.status === 'sent' || m.delivered_at) events.push({ label: 'Sent', cls: 'ok', at: m.sent_at || m.created_at });
                 if (m.delivered_at) events.push({ label: 'Delivered', cls: 'ok', at: m.delivered_at });
-                if (m.status === 'bounced' || m.status === 'soft_bounced') events.push({ label: m.status === 'soft_bounced' ? 'Soft bounce' : 'Bounced', cls: 'bad', at: m.delivered_at || m.created_at, err: m.error });
-                if (m.status === 'complained') events.push({ label: 'Complaint', cls: 'bad', at: m.delivered_at || m.created_at });
+                {/* Bounce/complaint carry no timestamp of their own (mail-events sets
+                    only status), so leave the time blank rather than stamping them
+                    with the send/delivery time and implying it bounced when it was sent. */}
+                if (m.status === 'bounced' || m.status === 'soft_bounced') events.push({ label: m.status === 'soft_bounced' ? 'Soft bounce' : 'Bounced', cls: 'bad', at: m.delivered_at || null, err: m.error });
+                if (m.status === 'complained') events.push({ label: 'Complaint', cls: 'bad', at: m.delivered_at || null });
                 if (m.status === 'failed') events.push({ label: 'Failed', cls: 'bad', at: m.created_at, err: m.error });
                 if (!events.length) events.push({ label: st.label, cls: st.cls === 'failed' ? 'bad' : 'ok', at: m.created_at });
                 const fmt = (t?: string | null) => (t ? new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '');
@@ -2610,6 +2631,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                       <iframe className="ag-emd-preview" sandbox="" title="Email preview" srcDoc={msgDetail.body_html} />
                     ) : msgDetail?.body_text ? (
                       <pre className="ag-emd-text">{msgDetail.body_text}</pre>
+                    ) : msgDetailErr ? (
+                      <button className="ag-send-btn ghost" onClick={() => openMsg(msgOpen!)}>Couldn’t load this email — tap to retry</button>
                     ) : (
                       <div className="ag-emd-nobody"><div className="ag-emd-nobody-t">No preview for this email</div><div className="ag-emd-nobody-s">It was sent before Sendra started saving message bodies. New sends will show their preview here.</div></div>
                     )}
@@ -2623,8 +2646,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   <div className="ag-empty" style={{ marginTop: 12 }}>No emails sent yet. Individual emails you send — from the composer or the API — show up here with their delivery status.</div>
                 ) : (() => {
                   const q = msgSearch.trim().toLowerCase();
-                  const rangeDays = (MSG_RANGE_OPTS.find((r) => r.id === msgRange) || MSG_RANGE_OPTS[4]).days;
-                  const cutoff = rangeDays ? Date.now() - rangeDays * 86400000 : 0;
+                  const _mr = MSG_RANGE_OPTS.find((r) => r.id === msgRange) || MSG_RANGE_OPTS[4];
+                  const cutoff = rangeCutoffMs(_mr.id, _mr.days);
                   const filtered = msgList.filter((m) => {
                     if (msgFilter !== 'all' && m.status !== msgFilter) return false;
                     if (q && !m.to_email.toLowerCase().includes(q) && !(m.subject || '').toLowerCase().includes(q)) return false;
@@ -2671,7 +2694,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     </>
                   );
                 })()}
-                <p className="ag-foot">Every individual email you’ve sent through Sendra — from the composer or the API — and where it landed. Campaign sends live under Logs.</p>
+                <p className="ag-foot">{msgList.length >= 100 ? 'Your 100 most recent individual emails' : 'Every individual email you’ve sent'} through Sendra — from the composer or the API — and where it landed. Campaign sends live under Logs.</p>
               </div>
               )
             ) : sendraTab === 'logs' ? (
@@ -2681,7 +2704,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   // and campaign sends (/campaigns), newest first.
                   const entries: LogEntry[] = [];
                   for (const m of msgList) {
-                    entries.push({ id: `m-${m.id}`, endpoint: '/emails', method: 'POST', code: m.status === 'failed' ? 422 : 200, at: m.created_at || m.sent_at || '', source: 'api', q: `${m.to_email} ${m.subject || ''} /emails` });
+                    // A failed transactional send is a mail-server/relay failure (502
+                    // from the mailer fn), not a 422 validation error — don't fabricate
+                    // a code that sends a debugging user chasing the wrong problem.
+                    entries.push({ id: `m-${m.id}`, endpoint: '/emails', method: 'POST', code: m.status === 'failed' ? 502 : 200, at: m.created_at || m.sent_at || '', source: 'api', q: `${m.to_email} ${m.subject || ''} /emails` });
                   }
                   for (const c of campList) {
                     if (c.status === 'draft') continue;
@@ -2690,8 +2716,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   }
                   entries.sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
                   const q = logsQ.trim().toLowerCase();
-                  const rangeDays = (MSG_RANGE_OPTS.find((r) => r.id === logRange) || MSG_RANGE_OPTS[4]).days;
-                  const cutoff = rangeDays ? Date.now() - rangeDays * 86400000 : 0;
+                  const _lr = MSG_RANGE_OPTS.find((r) => r.id === logRange) || MSG_RANGE_OPTS[4];
+                  const cutoff = rangeCutoffMs(_lr.id, _lr.days);
                   const filtered = entries.filter((e) => {
                     if (logSource !== 'all' && e.source !== logSource) return false;
                     if (logHttp === 'success' && e.code >= 400) return false;
@@ -2739,12 +2765,14 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     </>
                   );
                 })()}
-                <p className="ag-foot">Every request Sendra processed — campaign sends (/campaigns) and individual emails (/emails) — with its status. Filter by source to see one or the other.</p>
+                <p className="ag-foot">{msgList.length >= 100 || campList.length >= 50 ? 'Your most recent requests' : 'Every request Sendra processed'} — campaign sends (/campaigns) and individual emails (/emails) — with its status. Filter by source to see one or the other.</p>
               </div>
             ) : sendraTab === 'deliver' ? (
               <div className="ag-compose">
                 {delivBusy && !deliv ? (
                   <div className="ag-empty" style={{ marginTop: 12 }}>Checking your delivery…</div>
+                ) : delivErr && !deliv ? (
+                  <button className="ag-send-btn ghost" style={{ marginTop: 12 }} onClick={loadDeliver}>Couldn’t load your delivery stats — tap to retry</button>
                 ) : deliv && (deliv.reputation.accepted > 0 || (deliv.reputation.sent30 ?? 0) > 0) ? (
                   <>
                     {(() => {
@@ -2777,8 +2805,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         </>
                       );
                     })()}
+                    {delivErr && <div className="ag-send-err">Couldn’t refresh — the numbers above may be out of date.</div>}
                     <button className="ag-send-btn ghost" disabled={delivBusy} onClick={loadDeliver}>{delivBusy ? 'Refreshing…' : 'Refresh'}</button>
-                    <p className="ag-foot">Your delivery, opens, clicks and bounce rates across every campaign email you’ve sent. Opens are approximate; clicks are exact.</p>
+                    <p className="ag-foot">Your delivery and bounce/complaint rates across every campaign email you’ve sent. (Opens and clicks show per-campaign under each campaign’s stats.)</p>
                   </>
                 ) : (
                   <div className="ag-empty" style={{ marginTop: 12 }}>No sends yet. Send a campaign and your delivery, opens, clicks and bounce rates show up here.</div>
