@@ -7,12 +7,15 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchEmailHtml, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 import { SENDRA_TOOLS, type SendraTab, type SendraNavId, type MktNavRequest } from './marketingNav';
 import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, mailerMessages, mailerMessage, type SendingDomain, type DnsRecord, type Message as SentEmail } from './mailer';
 import { discoverDomainConnect, type DcSupport } from './domainConnect';
+
+// Minimal HTML escape for text we inject into a forwarded email's markup.
+const escapeHtml = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // Sendra is the comms agent (Gmail, Outlook & Telegram in one place). The app's
 // home screen picks the agent, so this screen opens straight into Sendra's workspace.
@@ -327,7 +330,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // address) — surfaced from the message metadata so a reply's From row can
   // show the real account instead of just "Gmail".
   const [readingTo, setReadingTo] = useState('');
-  useEffect(() => { setReadingTo(''); }, [reading?.id]);
+  useEffect(() => { if (reading?.id) setReadingTo(''); }, [reading?.id]);
+  // Forward mode: the composer carries the original email's full HTML and an
+  // optional note typed above it. `fwdSeq` invalidates an in-flight fetch of
+  // the original if the user has moved on before it lands.
+  const [forwarding, setForwarding] = useState(false);
+  const [fwdNote, setFwdNote] = useState('');
+  const fwdSeqRef = useRef(0);
   // Desktop two-pane inbox (list + reading pane). Static like App's
   // wideViewport — mid-session resizes across the breakpoint are rare.
   const [wide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches);
@@ -846,6 +855,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     tap();
     setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setComposeKind('text'); setToPicker(false);
     setCc(''); setBcc(''); setShowCc(false);
+    setForwarding(false); setFwdNote(''); fwdSeqRef.current++;
     setSendState('idle'); setSendApp(mailApp); setEmailTab('compose');
     loadContacts(); loadSaved();  // mailbox + saved contacts for the To picker
     listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });  // for the body template picker
@@ -867,30 +877,45 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     setSubject(/^re:/i.test(subj) ? subj : `Re: ${subj}`);
     setBodyText('');
     setCc(''); setBcc(''); setShowCc(false);
+    setForwarding(false); setFwdNote(''); fwdSeqRef.current++;
     setSendState('idle');
     setSendApp(reading.app === 'outlook' ? 'outlook' : 'gmail'); // reply through the email's own mailbox
     setReading(null);
     setEmailTab('compose');
   };
   // Forward = a brand-new message (replyThreadId stays null) pre-filled with a
-  // quoted header + the listed snippet. Composio's dedicated forward tools are
+  // quoted header + the ORIGINAL email. Composio's dedicated forward tools are
   // dead (OUTLOOK_FORWARD_MESSAGE broken; Gmail has none), so this composes a
   // fresh send through the existing path — works the same on both mailboxes.
+  // The full HTML loads in the background (the snippet stands in until then);
+  // an optional note typed above it is prepended at send time (doSend).
   const openForward = () => {
     if (!reading) return;
     tap();
-    const subj = reading.subject || '';
-    const who = reading.email ? `${reading.from || ''} <${reading.email}>`.trim() : (reading.from || 'Unknown');
+    const item = reading;
+    const subj = item.subject || '';
+    const who = item.email ? `${item.from || ''} <${item.email}>`.trim() : (item.from || 'Unknown');
     setReplyThreadId(null);
+    setForwarding(true); setFwdNote('');
     setTo('');
     setSubject(/^fwd:/i.test(subj) ? subj : `Fwd: ${subj}`);
-    setBodyText(`\n\n---------- Forwarded message ----------\nFrom: ${who}\n${reading.time ? `Date: ${reading.time}\n` : ''}Subject: ${subj}\n\n${reading.snippet || ''}`);
+    setBodyText(`\n\n---------- Forwarded message ----------\nFrom: ${who}\n${item.time ? `Date: ${item.time}\n` : ''}Subject: ${subj}\n\n${item.snippet || ''}`);
     setComposeKind('text');
     setCc(''); setBcc(''); setShowCc(false);
     setSendState('idle');
-    setSendApp(reading.app === 'outlook' ? 'outlook' : 'gmail');
+    setSendApp(item.app === 'outlook' ? 'outlook' : 'gmail');
     setReading(null);
     setEmailTab('compose');
+    loadContacts(); loadSaved();
+    if (item.id) {
+      const seq = ++fwdSeqRef.current;
+      fetchEmailHtml(item.id, item.app).then((r) => {
+        if (!mountedRef.current || fwdSeqRef.current !== seq || !r.html) return;
+        const head = `<div style="font-family:Arial,sans-serif;font-size:13px;color:#555;margin:0 0 14px">---------- Forwarded message ----------<br>From: ${escapeHtml(who)}<br>${item.time ? `Date: ${escapeHtml(item.time)}<br>` : ''}Subject: ${escapeHtml(subj)}</div>`;
+        setComposeKind('html');
+        setBodyText(head + r.html);
+      }).catch(() => { /* the snippet fallback stands */ });
+    }
   };
   const validTo = EMAIL_RE.test(to.trim());
   const splitAddrs = (s: string) => s.split(/[,;]/).map((x) => x.trim()).filter((x) => EMAIL_RE.test(x));
@@ -901,16 +926,21 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const doSend = () => {
     tap();
     const ccArr = splitAddrs(cc), bccArr = splitAddrs(bcc);
-    const payload = { to: to.trim(), subject: subject.trim(), body: bodyText, threadId: replyThreadId || undefined, cc: ccArr.length ? ccArr : undefined, bcc: bccArr.length ? bccArr : undefined, app: sendApp, html: composeKind === 'html' };
-    const draft = { to, cc, bcc, subject, body: bodyText, kind: composeKind, reply: replyThreadId, showCc };
+    const note = forwarding && composeKind === 'html' && fwdNote.trim()
+      ? `<div style="font-family:Arial,sans-serif;font-size:14px;white-space:pre-wrap;margin:0 0 16px">${escapeHtml(fwdNote.trim())}</div>`
+      : '';
+    const payload = { to: to.trim(), subject: subject.trim(), body: note + bodyText, threadId: replyThreadId || undefined, cc: ccArr.length ? ccArr : undefined, bcc: bccArr.length ? bccArr : undefined, app: sendApp, html: composeKind === 'html' };
+    const draft = { to, cc, bcc, subject, body: bodyText, kind: composeKind, reply: replyThreadId, showCc, fwd: forwarding, note: fwdNote };
     setSendState('idle');
     setTo(''); setCc(''); setBcc(''); setSubject(''); setBodyText(''); setComposeKind('text'); setShowCc(false);
+    setForwarding(false); setFwdNote(''); fwdSeqRef.current++;
     setReplyThreadId(null);
     setEmailTab('inbox');
     sendEmail(payload).catch(() => {
       if (!mountedRef.current) return;
       setTo(draft.to); setCc(draft.cc); setBcc(draft.bcc); setSubject(draft.subject);
       setBodyText(draft.body); setComposeKind(draft.kind); setShowCc(draft.showCc);
+      setForwarding(draft.fwd); setFwdNote(draft.note);
       setReplyThreadId(draft.reply);
       setEmailTab('compose');
       setSendState('err');
@@ -1533,7 +1563,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     : commsApp === 'telegram' ? (tgChat ? tgChat.title : 'Telegram')
     : emailTab === 'inbox' ? 'Inbox'
     : emailTab === 'contacts' ? 'Contacts'
-    : emailTab === 'compose' ? (replyThreadId ? 'Reply' : 'New email')
+    : emailTab === 'compose' ? (replyThreadId ? 'Reply' : forwarding ? 'Forward' : 'New email')
     : (commsApp === 'm365' ? 'Outlook' : 'Gmail');
   const subtitle = reading && !splitMail ? (reading.from || reading.email || 'Message')
     : commsApp === null ? SENDRA_META[sendraTab].s
@@ -2800,9 +2830,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
           {!mailConnected ? connectCard('Link this mailbox so the agent can send on your behalf.')
             : (
               <>
-                {replyThreadId ? (
-                  // A reply always goes from the mailbox that received the
-                  // mail — show the real address, nothing to choose.
+                {(replyThreadId || forwarding) ? (
+                  // Replies and forwards always go from the mailbox that
+                  // received the mail — show the real address, nothing to choose.
                   <div className="ag-from">
                     <span className="ag-from-lbl">From</span>
                     <span className="ag-from-fixed">{readingTo || (sendApp === 'outlook' ? 'Outlook' : 'Gmail')}</span>
@@ -2871,10 +2901,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     ))}
                   </select>
                 )}
+                {forwarding && composeKind === 'html' && (
+                  <input className="ag-field" placeholder="Add a message (optional)" value={fwdNote} onChange={(e) => setFwdNote(e.target.value)} onFocus={() => setToPicker(false)} />
+                )}
                 {composeKind === 'html' ? (
                   <div className="ag-tpl-preview">
-                    <div className="ag-tpl-preview-bar"><span>Designed template</span><button onClick={() => { tap(); setComposeKind('text'); setBodyText(''); }}>✕ Write plain text</button></div>
-                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(fillMergeTags(bodyText))} />
+                    <div className="ag-tpl-preview-bar"><span>{forwarding ? 'Forwarded message' : 'Designed template'}</span><button onClick={() => { tap(); setComposeKind('text'); setBodyText(''); }}>✕ Write plain text</button></div>
+                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(forwarding ? bodyText : fillMergeTags(bodyText))} />
                   </div>
                 ) : (
                   <textarea className="ag-field ag-body" placeholder="Write your message…" value={bodyText} onChange={(e) => setBodyText(e.target.value)} onFocus={() => setToPicker(false)} />
@@ -2885,7 +2918,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   onClick={doSend}
                   disabled={!validTo || !bodyText.trim()}
                 >
-                  {replyThreadId ? 'Send reply' : 'Send'}
+                  {replyThreadId ? 'Send reply' : forwarding ? 'Forward' : 'Send'}
                 </button>
               </>
             )}
