@@ -203,7 +203,8 @@
 .ag-ce-av-mid svg { width: 30px; height: 30px; }
 .ag-ce-title { font-size: var(--fs-title); font-weight: 800; letter-spacing: -0.02em; }
 .ag-ce-sub { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.55; margin: 8px auto 20px; }
-.ag-ce-cta { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; padding: 14px 22px; margin: 0 auto; }
+/* Two classes so this beats .ag-send-btn's width:100% (defined later in the file). */
+.ag-send-btn.ag-ce-cta { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; padding: 14px 22px; margin: 0 auto; }
 
 .ag-stage {
   flex: 1;
