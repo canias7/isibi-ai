@@ -689,9 +689,12 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .ag-dom-link { margin-top: 8px; }
 .ag-dom-head { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
 .ag-back-link { background: none; border: none; color: var(--brand); font: inherit; font-size: var(--fs-footnote); font-weight: 700; cursor: pointer; padding: 0; }
-/* Variant with a real arrow — a back control you can actually spot. */
-.ag-back-arrow { display: flex; align-items: center; justify-content: flex-start; gap: 7px; text-align: left; color: var(--text); font-size: var(--fs-body-s); padding: 2px 0; transition: color 120ms ease; }
-.ag-back-arrow:hover { color: #fff; }
+/* Variant with a real arrow — a back control you can actually spot. The row is
+   stretched to the column by the layout, so clicks only count on the inner
+   label — a full-width invisible hit target would swallow stray clicks. */
+.ag-back-arrow { display: flex; align-items: center; justify-content: flex-start; text-align: left; color: var(--text); font-size: var(--fs-body-s); padding: 2px 0; pointer-events: none; }
+.ag-back-arrow-in { display: inline-flex; align-items: center; gap: 7px; pointer-events: auto; cursor: pointer; transition: color 120ms ease; }
+.ag-back-arrow-in:hover { color: #fff; }
 .ag-dom-title { color: #fff; font-weight: 700; font-size: var(--fs-body-s); }
 .ag-dom-add { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
 .ag-dom-add .ag-field { flex: 1; }

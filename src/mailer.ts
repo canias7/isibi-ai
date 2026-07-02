@@ -46,7 +46,10 @@ export async function mailerDomainRecords(domain: string): Promise<DomainSetup> 
 }
 
 // Check the customer actually published the DKIM + SPF records.
-export async function mailerVerifyDomain(domain: string): Promise<{ domain: string; verified: boolean; checks: { dkim: boolean; spf: boolean } }> {
+// lookup_failed: the DNS lookup itself failed (resolver trouble) — the stored
+// verified state is untouched. spf_multiple: more than one v=spf1 record exists,
+// an SPF permerror the user must fix by merging into one record.
+export async function mailerVerifyDomain(domain: string): Promise<{ domain: string; verified: boolean; checks: { dkim: boolean; spf: boolean; spf_multiple?: boolean }; lookup_failed?: boolean }> {
   return invoke({ action: 'domain_verify', domain });
 }
 

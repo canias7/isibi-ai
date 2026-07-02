@@ -132,17 +132,32 @@ function recordsFor(domain: string, selector: string, dkimPublic: string) {
 // Resolve TXT records via DNS-over-HTTPS (so verification works from the edge).
 // Two resolvers: Google first, Cloudflare when Google returns nothing — a single
 // resolver's stale negative cache otherwise fails a record that's already live.
-async function dnsTxtVia(url: string, name: string): Promise<string[]> {
+// null = the LOOKUP failed (network/SERVFAIL) — distinct from "no records", so a
+// resolver outage can never demote a verified domain.
+async function dnsTxtVia(url: string, name: string): Promise<string[] | null> {
   try {
     const r = await fetch(`${url}?name=${encodeURIComponent(name)}&type=TXT`, { headers: { accept: "application/dns-json" } });
+    if (!r.ok) return null;
     const j = await r.json();
+    if (j.Status !== 0 && j.Status !== 3) return null; // 0=NOERROR, 3=NXDOMAIN (definitive absence); rest = resolver trouble
     return (j.Answer ?? []).map((a: { data?: string }) => String(a.data ?? "").replace(/^"|"$/g, "").replace(/"\s+"/g, ""));
-  } catch { return []; }
+  } catch { return null; }
 }
-async function dnsTxt(name: string): Promise<string[]> {
+async function dnsTxt(name: string): Promise<string[] | null> {
   const google = await dnsTxtVia("https://dns.google/resolve", name);
-  if (google.length) return google;
-  return dnsTxtVia("https://cloudflare-dns.com/dns-query", name);
+  if (google?.length) return google;
+  const cf = await dnsTxtVia("https://cloudflare-dns.com/dns-query", name);
+  if (cf?.length) return cf;
+  return google === null && cf === null ? null : [];
+}
+// SPF must be checked whole-token: a substring match would accept look-alikes
+// like include:_spf.gofarther.dev.evil.com. And publishing MORE than one v=spf1
+// record is a permerror that breaks SPF entirely — flag it instead of blessing it.
+function spfCheck(txt: string[]): { ok: boolean; multiple: boolean } {
+  const spf = txt.filter((t) => /^v=spf1(\s|$)/i.test(t.trim()));
+  if (spf.length !== 1) return { ok: false, multiple: spf.length > 1 };
+  const tokens = spf[0].trim().toLowerCase().split(/\s+/);
+  return { ok: tokens.includes(`include:${SPF_INCLUDE.toLowerCase()}`), multiple: false };
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -155,14 +170,15 @@ function whBadUrl(raw: string): boolean {
   let u: URL;
   try { u = new URL(raw); } catch { return true; }
   if (u.protocol !== "https:") return true;
-  const h = u.hostname.toLowerCase();
+  let h = u.hostname.toLowerCase();
+  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
+  if (h.includes(":")) return true; // any IPv6 literal — loopback/link-local/mapped forms are too varied to allowlist
   if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
   if (h === "169.254.169.254" || h === "metadata.google.internal") return true;
   if (/^(10|127|0)\./.test(h)) return true;
   if (/^192\.168\./.test(h)) return true;
   if (/^169\.254\./.test(h)) return true;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
-  if (h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80")) return true;
   return false;
 }
 async function whSign(secret: string, ts: string, body: string): Promise<string> {
@@ -226,8 +242,12 @@ Deno.serve(async (req: Request) => {
         const k = Array.isArray(row.sending_domain_keys) ? row.sending_domain_keys[0] : row.sending_domain_keys;
         return k?.private_pem ? { domain: row.domain, selector: row.dkim_selector, private_pem: k.private_pem } : null;
       })
-      .filter(Boolean);
-    return json(req, { keys });
+      .filter(Boolean) as Array<{ domain: string; selector: string; private_pem: string }>;
+    // One key per (domain, selector) — a duplicate would make the box's key file
+    // flip-flop between tenants every sync tick and break DKIM for both.
+    const seen = new Set<string>();
+    const deduped = keys.filter((k) => { const id = `${k.domain}/${k.selector}`; if (seen.has(id)) return false; seen.add(id); return true; });
+    return json(req, { keys: deduped });
   }
 
   // --- User path: everything else needs a logged-in user ---
@@ -240,6 +260,12 @@ Deno.serve(async (req: Request) => {
       case "domain_add": {
         const domain = cleanDomain(body?.domain);
         if (!domain) return json(req, { error: "enter a valid domain (e.g. acme.com)" }, 400);
+        // One sending identity per domain across ALL accounts: two tenants with the
+        // same domain would collide on the box (same s1 key path) and flip-flop
+        // OpenDKIM's key every sync tick.
+        const dup = await db(`sending_domains?domain=eq.${domain}&verified=eq.true&user_id=neq.${uid}&select=id&limit=1`);
+        const dupRows = dup.ok ? await dup.json() : [];
+        if (dupRows.length) return json(req, { error: "that domain is already verified by another account" }, 409);
         const selector = "s1";
         const { publicValue, privatePem } = await generateDkim();
         const ins = await db("sending_domains", {
@@ -270,17 +296,25 @@ Deno.serve(async (req: Request) => {
       case "domain_verify": {
         const domain = cleanDomain(body?.domain);
         if (!domain) return json(req, { error: "invalid domain" }, 400);
-        const r = await db(`sending_domains?user_id=eq.${uid}&domain=eq.${domain}&select=id,dkim_selector,dkim_public`);
+        const r = await db(`sending_domains?user_id=eq.${uid}&domain=eq.${domain}&select=id,dkim_selector,dkim_public,verified`);
         const rows = r.ok ? await r.json() : [];
         if (!rows.length) return json(req, { error: "domain not found" }, 404);
-        const { id, dkim_selector, dkim_public } = rows[0];
+        const { id, dkim_selector, dkim_public, verified: wasVerified } = rows[0];
         const [dkimTxt, spfTxt] = await Promise.all([dnsTxt(`${dkim_selector}._domainkey.${domain}`), dnsTxt(domain)]);
+        // A failed LOOKUP is not a failed CHECK: report it and leave the stored
+        // state alone — otherwise a resolver blip un-verifies a live domain and
+        // the next keysync pulls its DKIM key off the mail box.
+        if (dkimTxt === null || spfTxt === null) {
+          return json(req, { domain, verified: wasVerified, checks: { dkim: false, spf: false }, lookup_failed: true });
+        }
         const dkimOk = dkimTxt.some((t) => t.replace(/\s+/g, "").includes(`p=${dkim_public}`.replace(/\s+/g, "")));
-        const spfOk = spfTxt.some((t) => /v=spf1/i.test(t) && t.toLowerCase().includes(`include:${SPF_INCLUDE}`));
-        const verified = dkimOk && spfOk;
-        await db(`sending_domains?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ verified, verified_at: verified ? new Date().toISOString() : null }) });
-        bg([(async () => deliverEvent(await getEndpoints(uid), "domain.updated", { domain, verified }))()]);
-        return json(req, { domain, verified, checks: { dkim: dkimOk, spf: spfOk } });
+        const spf = spfCheck(spfTxt);
+        const verified = dkimOk && spf.ok;
+        if (verified !== wasVerified) {
+          await db(`sending_domains?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ verified, verified_at: verified ? new Date().toISOString() : null }) });
+          bg([(async () => deliverEvent(await getEndpoints(uid), "domain.updated", { domain, verified }))()]);
+        }
+        return json(req, { domain, verified, checks: { dkim: dkimOk, spf: spf.ok, spf_multiple: spf.multiple } });
       }
 
       case "domain_list": {
@@ -353,7 +387,10 @@ Deno.serve(async (req: Request) => {
 
         // Relay to the box (builds the MIME, injects into Postfix; OpenDKIM signs).
         // Short retry on a TRANSIENT failure (box blip / 5xx / network); a 4xx is a
-        // permanent client error and isn't retried.
+        // permanent client error and isn't retried. Every attempt carries the same
+        // dedup key so a retry after a timeout that actually delivered can't send
+        // the recipient a second copy (the relay drops repeats).
+        const dedupKey = idem || crypto.randomUUID();
         let lastErr = "couldn't reach the mail server";
         for (let attempt = 0; attempt < 3; attempt++) {
           if (attempt) await new Promise((r) => setTimeout(r, 400 * attempt));
@@ -363,7 +400,7 @@ Deno.serve(async (req: Request) => {
             const relayRes = await fetch(`${RELAY_URL}/send`, {
               method: "POST",
               signal: ctrl.signal,
-              headers: { authorization: `Bearer ${RELAY_TOKEN}`, "content-type": "application/json" },
+              headers: { authorization: `Bearer ${RELAY_TOKEN}`, "content-type": "application/json", "x-idempotency-key": dedupKey },
               body: JSON.stringify({
                 from: from.display ? `${from.display} <${from.email}>` : from.email,
                 to: to.display ? `${to.display} <${to.email}>` : to.email,
@@ -392,7 +429,9 @@ Deno.serve(async (req: Request) => {
         }
         await logMessage("failed", null, lastErr);
         bg([deliverEvent(eps, "failed", { email: to.email, from: from.email, subject, error: lastErr.slice(0, 300) })]);
-        return json(req, { error: "couldn't reach the mail server" }, 502);
+        // Surface the box's actual error when it gave one — "couldn't reach" was
+        // masking real sendmail rejections behind a connectivity story.
+        return json(req, { error: lastErr === "unreachable" ? "couldn't reach the mail server" : lastErr.slice(0, 300) }, 502);
       }
 
       // Transactional activity log — the user's recent mailer.send messages + status.

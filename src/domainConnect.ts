@@ -28,6 +28,7 @@ export interface DcSupport {
   supported: boolean;   // the host speaks Domain Connect
   host?: string;        // the discovered host (e.g. "domainconnect.cloudflare.com")
   applyUrl?: string;    // present only when one-click is live + supported
+  failed?: boolean;     // discovery itself failed (network) — NOT "unsupported"
 }
 
 // DNS-over-HTTPS TXT lookup (browser-safe — no server needed).

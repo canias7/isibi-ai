@@ -33,7 +33,7 @@ async function postEvent(evt: { message_id: string; email: string; type: string;
     if (SB_ANON) headers.apikey = SB_ANON;
     const r = await fetch(EVENTS_URL, { method: "POST", headers, body: JSON.stringify({ events: [evt] }) });
     if (!r.ok) console.error("mail-events", r.status, (await r.text()).slice(0, 160));
-    else console.log("bounce ->", evt.email, evt.message_id);
+    else console.log(`${evt.type} ->`, evt.email, evt.message_id);
   } catch (e) {
     console.error("post failed:", String(e));
   }
@@ -43,6 +43,10 @@ async function postEvent(evt: { message_id: string; email: string; type: string;
 const RE_MID = /^([0-9A-F]+):\s+message-id=<([^>]+)>/i;
 // smtp/lmtp logs: <qid>: to=<addr>, ... status=bounced (reason...)
 const RE_BOUNCE = /^([0-9A-F]+):\s+to=<([^>]+)>.*status=bounced(?:\s*\(([^)]*)\))?/i;
+// smtp logs: <qid>: to=<addr>, relay=mx.example[1.2.3.4]:25, ... status=sent (250 ...)
+// relay= with a remote host means the destination ACCEPTED the message — that's a
+// delivery. (Local pipe/none relays are internal hops, not deliveries.)
+const RE_SENT = /^([0-9A-F]+):\s+to=<([^>]+)>.*relay=([^,\s]+).*status=sent/i;
 // Postfix logs the enhanced status code as dsn=X.Y.Z. The class digit tells us
 // permanent vs transient: 5.x.x = hard bounce (suppress), 4.x.x = soft (don't).
 const RE_DSN = /\bdsn=((\d)\.\d+\.\d+)/i;
@@ -57,6 +61,13 @@ function handle(line: string) {
     const dsn = line.match(RE_DSN);
     const hard = dsn ? dsn[2] === "5" : true; // unknown code -> treat as hard (safe default)
     postEvent({ message_id: messageId, email: b[2].toLowerCase(), type: "bounce", reason: (b[3] || "bounced").slice(0, 300), code: dsn ? dsn[1] : undefined, hard });
+    return;
+  }
+  const s = line.match(RE_SENT);
+  if (s && !/^(local|none|pipe)\b/i.test(s[3])) {
+    const messageId = midByQid.get(s[1]);
+    if (!messageId) return;
+    postEvent({ message_id: messageId, email: s[2].toLowerCase(), type: "delivered" });
   }
 }
 
