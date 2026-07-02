@@ -306,6 +306,10 @@ const JOB_KEY = 'sendra_tpl_job';
 function saveJob(j: PendingJob) { try { localStorage.setItem(JOB_KEY, JSON.stringify(j)); } catch { /* ignore */ } }
 function loadJob(): PendingJob | null { try { const s = localStorage.getItem(JOB_KEY); const j = s ? JSON.parse(s) : null; return j && Date.now() - j.at < 300000 ? j : null; } catch { return null; } }
 function clearJob() { try { localStorage.removeItem(JOB_KEY); } catch { /* ignore */ } }
+// Only clear the stored job if it's still THIS jobId — a stale poll finishing
+// must not wipe a newer session's just-saved job record (which would orphan the
+// newer generation and let the user fire a duplicate).
+function clearJobFor(jobId: string) { try { const j = loadJob(); if (!j || j.jobId === jobId) localStorage.removeItem(JOB_KEY); } catch { /* ignore */ } }
 
 // `active`: false while this engine is the hidden half of the Marketing page —
 // it stays mounted (state survives area flips) but its focus trap goes dormant
@@ -535,6 +539,11 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     };
   }, []);
   const builderGenRef = useRef(0); // bumped on every AI-builder session change; an in-flight job whose gen no longer matches is dropped (never applied/saved to the wrong template)
+  // The template id of the CURRENT builder session (undefined until it has a row).
+  // persistTemplate targets this, not the closure's tplEdit?.id — so a stale
+  // continuation can't POST a duplicate row or repoint the editor at a copy.
+  const tplSessionIdRef = useRef<string | undefined>(undefined);
+  const persistChainRef = useRef<Promise<void>>(Promise.resolve()); // serialize persists so two don't both create a row
 
   // Restore an unsaved builder draft on open (survives app close, Lovable-style).
   useEffect(() => {
@@ -542,6 +551,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
       const d = JSON.parse(localStorage.getItem(TPL_DRAFT_KEY) || 'null');
       if (d && (d.body || (Array.isArray(d.chat) && d.chat.length))) {
         builderGenRef.current++; // a fresh builder session, like every other entry point
+        tplSessionIdRef.current = d.id || undefined;
         setTplEdit({ id: d.id || undefined });
         setTplName(d.name || ''); setTplSubject(d.subject || ''); setTplBody(d.body || '');
         setChatMsgs(Array.isArray(d.chat) ? d.chat : []); setChatView(d.view === 'preview' ? 'preview' : 'chat');
@@ -558,7 +568,14 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // Autosave the active builder session on every change.
   useEffect(() => {
     if (!tplEdit) return;
-    try { localStorage.setItem(TPL_DRAFT_KEY, JSON.stringify({ id: tplEdit.id, name: tplName, subject: tplSubject, body: tplBody, chat: chatMsgs, view: chatView === 'history' ? 'chat' : chatView, versions: tplVersions, pending: pendingImg })); } catch { /* ignore */ }
+    const base = { id: tplEdit.id, name: tplName, subject: tplSubject, body: tplBody, chat: chatMsgs, view: chatView === 'history' ? 'chat' : chatView, pending: pendingImg };
+    try { localStorage.setItem(TPL_DRAFT_KEY, JSON.stringify({ ...base, versions: tplVersions })); }
+    catch {
+      // Quota: the version history (up to 40 × ~50KB bodies) is the heavy part —
+      // drop it and keep the live draft, rather than silently freezing at an old
+      // snapshot and losing everything on the next app close.
+      try { localStorage.setItem(TPL_DRAFT_KEY, JSON.stringify({ ...base, versions: [] })); } catch { /* still over quota — nothing more we can do */ }
+    }
   }, [tplEdit, tplName, tplSubject, tplBody, chatMsgs, chatView, tplVersions, pendingImg]);
   const clearDraft = () => { try { localStorage.removeItem(TPL_DRAFT_KEY); } catch { /* ignore */ } };
 
@@ -591,9 +608,12 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     else if (commsApp && commsApp !== 'telegram' && emailTab === 'compose') setEmailTab(inboxHome ? 'inbox' : 'home');
     else if (commsApp && commsApp !== 'telegram' && emailTab !== 'home' && !inboxHome) setEmailTab('home');
     else if (commsApp) { setCommsApp(null); setInboxHome(false); }
-    else if (tplEdit && chatView === 'history') setChatView('preview');
-    else if (tplEdit && chatView === 'preview') setChatView('chat');
-    else if (tplEdit) { builderGenRef.current++; if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email + invalidates any in-flight job
+    // Only treat the builder as "open" for Back when it's actually the visible
+    // tab — a restored draft sets tplEdit while the user may be on Emails, and
+    // without this gate Back would silently save a hidden template first.
+    else if (tplEdit && sendraTab === 'templates' && chatView === 'history') setChatView('preview');
+    else if (tplEdit && sendraTab === 'templates' && chatView === 'preview') setChatView('chat');
+    else if (tplEdit && sendraTab === 'templates') { builderGenRef.current++; if (tplBody.trim() && !tplSaving) saveTpl(); else { clearDraft(); setTplEdit(null); } } // leaving the builder saves a built email + invalidates any in-flight job
 
     else if (msgOpen) { setMsgOpen(null); setMsgDetail(null); }
     else if (domOpen) setDomOpen(null);
@@ -1672,12 +1692,17 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
   // New template -> straight into the AI chat builder.
   const startAI = () => {
-    tap(); builderGenRef.current++; setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
+    tap(); builderGenRef.current++; tplSessionIdRef.current = undefined; setTplEdit({}); setTplName(''); setTplSubject(''); setTplBody(''); setChatMsgs([]); setChatInput(''); setChatErr(''); setChatHistory([]); setTplVersions([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
     const pj = loadJob(); // a generation that was still running when the app last closed
+    // Only resume a genuinely NEW-template job here. A stored job for an existing
+    // template (or a stale/foreign one) must not be injected into this blank
+    // session, where it would generate + auto-persist a template the user walked
+    // away from.
     if (pj && pj.editId === 'new') { setChatMsgs([{ role: 'user', content: pj.label }]); resumeJob(pj, 1); }
+    else if (pj) clearJob(); // a job belonging to a now-abandoned session — don't let it resurface
   };
   const openTplEdit = (t: Template) => {
-    tap(); builderGenRef.current++;
+    tap(); builderGenRef.current++; tplSessionIdRef.current = t.id;
     setTplEdit({ id: t.id }); setTplName(t.name); setTplSubject(t.subject); setTplBody(t.body);
     setChatMsgs(t.chat && t.chat.length ? t.chat : []); setChatInput(''); setChatErr(''); setChatHistory([]); setPendingImg(null); setChatBusy(false); setTplImgBusy(false); setCopiedIdx(null); setTypeIdx(null); setChatView('chat');
     setTplVersions(t.body ? [{ label: 'Saved version', subject: t.subject, body: t.body, at: Date.parse(t.updated_at || '') || Date.now() }] : []);
@@ -1691,23 +1716,36 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // Auto-save the built template the moment it's generated, so it lands in the list
   // without an explicit Save. The first build creates the row; we hold its id so later
   // edits update the same template instead of duplicating it.
-  const persistTemplate = async (body: string, subject: string, chat: ChatMsg[]) => {
+  const persistTemplate = (body: string, subject: string, chat: ChatMsg[], gen: number) => {
     const b = (body || '').trim();
     if (!b) return;
-    const subj = (subject || '').trim() || 'Untitled email';
-    const name = (tplName || '').trim() || subj;
-    try {
-      const r = await saveTemplate({ id: tplEdit?.id, name, subject: subj, body: b, kind: 'html', chat: chat.slice(-40) });
-      if (!mountedRef.current) return;
-      if (r?.id && !tplEdit?.id) setTplEdit({ id: r.id });
-      listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
-    } catch { /* non-fatal — explicit Save / save-on-exit still cover it */ }
+    // Serialize: a second persist for the same session waits for the first, so it
+    // sees the id the first created (via tplSessionIdRef) and PATCHes it instead
+    // of POSTing a duplicate row.
+    persistChainRef.current = persistChainRef.current.then(async () => {
+      if (builderGenRef.current !== gen) return; // session moved on — don't touch a new template
+      const subj = (subject || '').trim() || 'Untitled email';
+      const name = (tplName || '').trim() || subj;
+      try {
+        const r = await saveTemplate({ id: tplSessionIdRef.current, name, subject: subj, body: b, kind: 'html', chat: chat.slice(-40) });
+        if (builderGenRef.current !== gen) return;
+        if (r?.id && !tplSessionIdRef.current) { tplSessionIdRef.current = r.id; if (mountedRef.current) setTplEdit({ id: r.id }); }
+        if (mountedRef.current) listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
+      } catch { /* non-fatal — explicit Save / save-on-exit still cover it */ }
+    });
   };
-  const pollJob = async (jobId: string): Promise<TemplateJob | null> => {
+  const pollJob = async (jobId: string, gen: number): Promise<TemplateJob | null> => {
     const deadline = Date.now() + 240000; // give up after ~4 min
     while (Date.now() < deadline) {
-      if (!mountedRef.current) return null; // editor closed — the persisted job resumes later
-      try { const res = await getTemplateJob(jobId); const job = res.job; if (job && (job.status === 'done' || job.status === 'error')) return job; } catch { /* network blip — keep polling */ }
+      if (!mountedRef.current || builderGenRef.current !== gen) return null; // editor closed/switched — stop hitting the server
+      try {
+        const res = await getTemplateJob(jobId);
+        const job = res.job;
+        if (job && (job.status === 'done' || job.status === 'error')) return job;
+        // A missing job (cleaned up / wrong device) will never complete — fail fast
+        // instead of polling a ghost for the full 4 minutes.
+        if (res.error === 'not_found') return null;
+      } catch { /* network blip — keep polling */ }
       await new Promise((r) => setTimeout(r, 2500));
     }
     return null;
@@ -1730,14 +1768,14 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     const myGen = builderGenRef.current; // the session we're resuming into
     setChatErr(''); setChatBusy(true); setChatJobId(pj.jobId);
     (async () => {
-      const job = await pollJob(pj.jobId);
+      const job = await pollJob(pj.jobId, myGen);
       if (!mountedRef.current) return;
-      if (builderGenRef.current !== myGen) { clearJob(); return; } // builder switched/closed — drop it
+      if (builderGenRef.current !== myGen) { clearJobFor(pj.jobId); return; } // builder switched/closed — drop only this job
       applyJobResult(job, pj.prev, pj.label, assistantIdx);
-      setChatBusy(false); setChatJobId(''); clearJob();
+      setChatBusy(false); setChatJobId(''); clearJobFor(pj.jobId);
       if (job && job.status !== 'error' && job.body) {
         const chat: ChatMsg[] = [{ role: 'user', content: pj.label }, { role: 'assistant', content: job.reply || 'Done.' }];
-        persistTemplate(job.body, job.subject || pj.prev.subject, chat);
+        persistTemplate(job.body, job.subject || pj.prev.subject, chat, myGen);
       }
     })();
   };
@@ -1753,19 +1791,19 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     try {
       try { start = await chatTemplateStart(next, tplBody, images); }
       catch { start = await chatTemplateStart(next, tplBody, images); }
-    } catch { if (mountedRef.current) { setChatErr('Couldn’t start — check your connection and try again.'); setChatBusy(false); } clearJob(); return; }
+    } catch { if (mountedRef.current) { setChatErr('Couldn’t start — check your connection and try again.'); setChatBusy(false); } return; }
     if (!mountedRef.current || builderGenRef.current !== myGen) return;
-    if (start.error || !start.job_id) { setChatErr(start.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t start — try again.'); setChatBusy(false); clearJob(); return; }
+    if (start.error || !start.job_id) { setChatErr(start.error === 'ai_unset' ? 'AI builder isn’t set up on the server yet.' : 'Couldn’t start — try again.'); setChatBusy(false); return; }
     setChatJobId(start.job_id);
-    saveJob({ jobId: start.job_id, editId: tplEdit?.id || 'new', prev, label, at: Date.now() });
-    const job = await pollJob(start.job_id);
+    saveJob({ jobId: start.job_id, editId: tplSessionIdRef.current || 'new', prev, label, at: Date.now() });
+    const job = await pollJob(start.job_id, myGen);
     if (!mountedRef.current) return; // editor left — leave the persisted job to resume on return
-    if (builderGenRef.current !== myGen) { clearJob(); return; } // switched/closed builder — don't apply to the wrong template
+    if (builderGenRef.current !== myGen) { clearJobFor(start.job_id); return; } // switched/closed builder — don't apply to the wrong template
     applyJobResult(job, prev, label, next.length);
-    setChatBusy(false); setChatJobId(''); clearJob();
+    setChatBusy(false); setChatJobId(''); clearJobFor(start.job_id);
     if (job && job.status !== 'error' && job.body) {
       const chat: ChatMsg[] = [...next, { role: 'assistant', content: job.reply || 'Done.' }];
-      persistTemplate(job.body, job.subject || tplSubject, chat);
+      persistTemplate(job.body, job.subject || tplSubject, chat, myGen);
     }
   };
   const copyMsg = async (i: number, text: string) => {
@@ -2038,7 +2076,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     {campBodyKind === 'html' ? (
                       <div className="ag-tpl-preview">
                         <div className="ag-tpl-preview-bar"><span>Designed template</span><button onClick={() => { tap(); setCampBody(''); setCampBodyKind('text'); }}>✕ Write plain text</button></div>
-                        <iframe className="ag-tpl-frame" title="Template preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(campBody)} />
+                        <iframe className="ag-tpl-frame" title="Template preview" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={buildSrcDoc(campBody)} />
                       </div>
                     ) : (
                       <textarea className="ag-field ag-body" placeholder="Write your message… use {{name}} to personalize each email" value={campBody}
@@ -2229,7 +2267,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         </div>
                         <span className="ag-mail-time">{new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                       </div>
-                      <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(fillMergeTags(tplBody) || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
+                      <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={buildSrcDoc(fillMergeTags(tplBody) || '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">Nothing yet — chat to build it.</div>')} />
                     </div>
                     {chatErr && <div className="ag-send-err">{chatErr}</div>}
                     {tplEdit.id && <button className="ag-tpl-del" disabled={tplSaving} onClick={delTpl}>Delete template</button>}
@@ -3287,7 +3325,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 {composeKind === 'html' ? (
                   <div className="ag-tpl-preview">
                     <div className="ag-tpl-preview-bar"><span>{forwarding ? 'Forwarded message' : 'Designed template'}</span><button onClick={() => { tap(); setComposeKind('text'); setBodyText(''); }}>✕ Write plain text</button></div>
-                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups" srcDoc={buildSrcDoc(forwarding ? bodyText : fillMergeTags(bodyText))} />
+                    <iframe className="ag-tpl-frame" title="Email preview" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={buildSrcDoc(forwarding ? bodyText : fillMergeTags(bodyText))} />
                   </div>
                 ) : (
                   <textarea className="ag-field ag-body" placeholder="Write your message…" value={bodyText} onChange={(e) => setBodyText(e.target.value)} onFocus={() => setToPicker(false)} />
