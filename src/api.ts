@@ -126,7 +126,10 @@ export async function updateSavedContact(id: string, c: { name: string; email?: 
   return (data || {}) as { contact?: SavedContact; error?: string };
 }
 export async function deleteSavedContact(id: string): Promise<void> {
-  await supabase.functions.invoke('address-book', { body: { action: 'delete', id } });
+  const { data, error } = await supabase.functions.invoke('address-book', { body: { action: 'delete', id } });
+  if (error) throw new Error(error.message || 'Request failed');
+  const e = (data as { error?: string } | null)?.error;
+  if (e) throw new Error(e);
 }
 
 // Send an email (Composio GMAIL_SEND_EMAIL, server-verified). Returns on success,
@@ -196,9 +199,11 @@ async function smsInvoke(action: string, extra: Record<string, unknown> = {}): P
   }
   throw new Error('Request failed');
 }
-export async function smsStatus(): Promise<{ ready: boolean; number: string | null }> {
+// `failed` distinguishes a real "no number" from a transient status-fetch error,
+// so the UI doesn't show the purchase flow to someone who already owns a number.
+export async function smsStatus(): Promise<{ ready: boolean; number: string | null; failed?: boolean }> {
   try { const d = await smsInvoke('status'); return { ready: !!d.ready, number: (d.number as string) || null }; }
-  catch { return { ready: false, number: null }; }
+  catch { return { ready: false, number: null, failed: true }; }
 }
 export async function sendSms(to: string, body: string): Promise<{ sid?: string; remaining?: number }> {
   const d = await smsInvoke('send', { to, body });
@@ -214,8 +219,10 @@ export async function buySmsNumber(phoneNumber: string): Promise<{ ok?: boolean;
   try { const d = await smsInvoke('buyNumber', { phoneNumber }); return { ok: !!d.ok, number: d.number as string | undefined }; }
   catch (e) { return { error: (e as Error)?.message || 'failed' }; }
 }
+// Throws on failure so the caller can keep the number visible instead of
+// dropping the user into the purchase flow while the old number still bills.
 export async function releaseSmsNumber(): Promise<void> {
-  try { await smsInvoke('release'); } catch { /* ignore */ }
+  await smsInvoke('release');
 }
 
 // ---- Email campaigns (sent through the user's mailbox, via the `campaigns` fn) ----

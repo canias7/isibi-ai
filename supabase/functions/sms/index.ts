@@ -156,22 +156,31 @@ Deno.serve(async (req: Request) => {
       return J({ error: "buy_failed", detail: String(buy.j?.message || buy.status).slice(0, 200) });
     }
 
-    // 3. Save the connection.
+    // 3. Save the connection. If this fails, ROLL BACK the paid number +
+    // subaccount — otherwise they bill forever with no DB row to find them by.
     const r = await fetch(`${SB_URL}/rest/v1/sms_connections?on_conflict=user_id`, {
       method: "POST", headers: { ...sbHeaders, prefer: "resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify({ user_id: uid, account_sid: subSid, auth_token: subToken, from_number: phone, phone_sid: String(buy.j.sid), messaging_service_sid: null, status: "active", updated_at: new Date().toISOString() }),
     });
-    if (!r.ok) return J({ error: "save_failed" }, 502);
+    if (!r.ok) {
+      await tw(subSid, subToken, "DELETE", `/Accounts/${subSid}/IncomingPhoneNumbers/${buy.j.sid}.json`).catch(() => {});
+      await tw(MASTER_SID, MASTER_TOKEN, "POST", `/Accounts/${subSid}.json`, new URLSearchParams({ Status: "closed" })).catch(() => {});
+      return J({ error: "save_failed" }, 502);
+    }
     return J({ ok: true, number: phone });
   }
 
   if (action === "release") {
     const c = await getConn(uid);
     if (c?.account_sid) {
+      // Both Twilio calls must succeed before we drop the DB row — otherwise the
+      // number/subaccount keeps billing with no handle left to cancel it.
       if (c.phone_sid && c.auth_token) {
-        await tw(c.account_sid, c.auth_token, "DELETE", `/Accounts/${c.account_sid}/IncomingPhoneNumbers/${c.phone_sid}.json`);
+        const del = await tw(c.account_sid, c.auth_token, "DELETE", `/Accounts/${c.account_sid}/IncomingPhoneNumbers/${c.phone_sid}.json`);
+        if (!del.ok && del.status !== 404) return J({ error: "release_failed", detail: "couldn't release the number" }, 502);
       }
-      await tw(MASTER_SID, MASTER_TOKEN, "POST", `/Accounts/${c.account_sid}.json`, new URLSearchParams({ Status: "closed" }));
+      const close = await tw(MASTER_SID, MASTER_TOKEN, "POST", `/Accounts/${c.account_sid}.json`, new URLSearchParams({ Status: "closed" }));
+      if (!close.ok) return J({ error: "release_failed", detail: "couldn't close the subaccount" }, 502);
     }
     await fetch(`${SB_URL}/rest/v1/sms_connections?user_id=eq.${encodeURIComponent(uid)}`, { method: "DELETE", headers: sbHeaders });
     return J({ ok: true });
