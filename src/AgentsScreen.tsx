@@ -764,6 +764,15 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (navRequest && navRequest.area === 'email' && navRequest.n > 0) navTo(navRequest.id as SendraNavId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navRequest?.n]);
+
+  // The compose screen's template picker needs the list even when the
+  // Templates/Campaigns tabs (which normally fetch it) were never opened.
+  useEffect(() => {
+    if (commsApp && commsApp !== 'telegram' && emailTab === 'compose' && tplList.length === 0) {
+      listTemplates().then((t) => { if (mountedRef.current && t.length) setTplList(t); });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commsApp, emailTab]);
   const toggleContact = (email: string) => setContactSel((s) => {
     const n = new Set(s);
     if (n.has(email)) n.delete(email); else n.add(email);
