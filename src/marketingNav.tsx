@@ -4,11 +4,10 @@ import {
   IconHome, IconPhotos, IconFilm, IconUser, IconCompose, IconPlus,
 } from './icons';
 
-// Nav for the hub's pages — Marketing (Sendra) and Studio (Wingup) — shared
-// between the unified desktop sidebars (App.tsx) and the screens' own mobile
-// chrome (Sendra's drawer, Wingup's tabs). Lives outside the lazily-loaded
-// screens so the shell can render it without pulling their chunks into the
-// main bundle.
+// The Marketing page's nav, shared between the unified desktop sidebar
+// (App.tsx) and Sendra's mobile drawer (AgentsScreen). Lives outside the
+// lazily-loaded screens so the shell can render it without pulling their
+// chunks into the main bundle.
 
 type IconCmp = typeof IconCompose;
 
@@ -36,7 +35,9 @@ export const SENDRA_TOOLS: { id: SendraNavId; name: string; desc: string; Icon: 
   { id: 'schedule', name: 'Schedule', desc: 'Plan sends ahead', Icon: IconCalendar },
 ];
 
-// Wingup destinations, same ids as its internal views.
+// Wingup destinations, same ids as its internal views. Unused since the
+// screen stopped shipping (Studio's canvas is bare while its real contents
+// are designed) — kept with it.
 export const SOCIAL_TOOLS: { id: SocialNavId; name: string; Icon: IconCmp }[] = [
   { id: 'landing', name: 'Home', Icon: IconHome },
   { id: 'gallery', name: 'Gallery', Icon: IconPhotos },
