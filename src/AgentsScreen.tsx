@@ -394,6 +394,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [numBusy, setNumBusy] = useState(false);   // searching
   const [numErr, setNumErr] = useState('');
   const [buyingNum, setBuyingNum] = useState('');  // phoneNumber being purchased
+  const [relArmed, setRelArmed] = useState(false); // Release: first tap arms, second confirms
+  const [relBusy, setRelBusy] = useState(false);
+  const relTimerRef = useRef<number | null>(null);
   // Email campaign builder
   const [campNew, setCampNew] = useState(false);
   const [campApp, setCampApp] = useState<'gmail' | 'outlook'>('gmail');
@@ -522,6 +525,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     return () => {
       mountedRef.current = false;
       if (domRmTimerRef.current) { clearTimeout(domRmTimerRef.current); domRmTimerRef.current = null; }
+      if (relTimerRef.current) { clearTimeout(relTimerRef.current); relTimerRef.current = null; }
     };
   }, []);
   const builderGenRef = useRef(0); // bumped on every AI-builder session change; an in-flight job whose gen no longer matches is dropped (never applied/saved to the wrong template)
@@ -753,7 +757,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   useEffect(() => {
     if (agent !== 'email' || commsApp !== null) return;
     if ((sendraTab === 'campaigns' && !campNew) || sendraTab === 'schedule') listCampaigns().then((c) => { if (mountedRef.current) setCampList(c); });
-    if (sendraTab === 'texts') smsStatus().then((s) => { if (mountedRef.current) { setSmsReady(s.ready); setSmsNumber(s.number); } });
+    if (sendraTab === 'texts') smsStatus().then((s) => {
+      if (!mountedRef.current) return;
+      // A transient status failure must not show the purchase flow to a number
+      // owner — leave the loading state and surface a retry instead.
+      if (s.failed) { setSmsReady(null); setNumErr('Couldn’t load your texting status — reopen the tab to retry.'); return; }
+      setSmsReady(s.ready); setSmsNumber(s.number); setNumErr('');
+    });
     if (sendraTab === 'campaigns' || sendraTab === 'templates') listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });
     if (sendraTab === 'logs') loadRequestLogs();
     if (sendraTab === 'emails') { setMsgBusy(true); mailerMessages().then((m) => { if (mountedRef.current) { setMsgList(m); setMsgBusy(false); } }).catch(() => { if (mountedRef.current) setMsgBusy(false); }); }
@@ -853,7 +863,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   });
   // Selected contacts -> prefill a new campaign (the bulk-send engine handles the rest).
   const emailSelected = () => {
-    const picked = mergedContacts.filter((c) => c.email && contactSel.has(c.email));
+    // Respect the active segment so a selection can only send within the segment
+    // it was made in (matches the count shown next to the button).
+    const inSeg = contactTag ? mergedContacts.filter((c) => c.tags?.includes(contactTag)) : mergedContacts;
+    const picked = inSeg.filter((c) => c.email && contactSel.has(c.email));
     if (!picked.length) return;
     tap();
     const recips = picked.map((c) => (c.name ? `${c.name} <${c.email}>` : c.email)).join('\n');
@@ -871,6 +884,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     const name = cForm.name.trim(), email = cForm.email.trim().toLowerCase(), phone = cForm.phone.trim();
     const tags = cForm.tags.split(',').map((t) => t.trim()).filter(Boolean);
     if (!EMAIL_RE.test(email)) { setCFormErr('A valid email is required.'); return; }
+    // Light phone sanity: if present it must contain a plausible number of digits,
+    // so free text like "call after 5pm" doesn't silently break later SMS use.
+    if (phone) { const digits = phone.replace(/\D/g, ''); if (digits.length < 7 || digits.length > 15) { setCFormErr('That phone number doesn’t look right — leave it blank or use digits (7–15).'); return; } }
     // No two contacts can share an email (checked here for an instant message; the
     // server + a DB unique index enforce it for real).
     if (savedContacts.some((c) => (c.email || '').trim().toLowerCase() === email && c.id !== cForm.id)) {
@@ -890,10 +906,19 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     finally { if (mountedRef.current) setCFormBusy(false); }
   };
   const delCForm = async () => {
-    if (!cForm?.id) { setCForm(null); return; }
-    tap();
-    await deleteSavedContact(cForm.id).catch(() => {});
-    if (mountedRef.current) { setCForm(null); await loadSaved(); }
+    if (!cForm?.id || cFormBusy) return;
+    tap(); setCFormBusy(true); setCFormErr('');
+    const email = (cForm.email || '').trim().toLowerCase();
+    try {
+      await deleteSavedContact(cForm.id);
+      if (!mountedRef.current) return;
+      // Prune any stale selection referencing the deleted address so the bulk
+      // "Email N people" count can't overstate.
+      if (email) setContactSel((s) => { if (!s.has(email)) return s; const n = new Set(s); n.delete(email); return n; });
+      setCForm(null); await loadSaved();
+    } catch (e) {
+      if (mountedRef.current) setCFormErr(e instanceof Error ? e.message : 'Couldn’t delete — try again.');
+    } finally { if (mountedRef.current) setCFormBusy(false); }
   };
 
   const onPullStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -1105,12 +1130,30 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     } catch { if (mountedRef.current) setNumErr('Something went wrong — try again.'); }
     finally { if (mountedRef.current) setBuyingNum(''); }
   };
+  // Releasing the number deletes the Twilio number + closes the subaccount and is
+  // irreversible — arm on the first tap, act on the second, and only flip the UI
+  // to "get a number" when the release actually succeeded (else the old number
+  // keeps billing behind a purchase screen).
   const doReleaseNumber = async () => {
     tap();
-    try { await releaseSmsNumber(); } catch { /* ignore */ }
-    if (mountedRef.current) { setSmsReady(false); setSmsNumber(null); }
+    if (!relArmed) {
+      setRelArmed(true); setNumErr('');
+      if (relTimerRef.current) clearTimeout(relTimerRef.current);
+      relTimerRef.current = window.setTimeout(() => { if (mountedRef.current) setRelArmed(false); }, 3500);
+      return;
+    }
+    if (relTimerRef.current) { clearTimeout(relTimerRef.current); relTimerRef.current = null; }
+    setRelArmed(false); setRelBusy(true); setNumErr('');
+    try {
+      await releaseSmsNumber();
+      if (mountedRef.current) { setSmsReady(false); setSmsNumber(null); }
+    } catch {
+      if (mountedRef.current) setNumErr('Couldn’t release the number — it’s still active. Try again in a moment.');
+    } finally { if (mountedRef.current) setRelBusy(false); }
   };
-  const validSmsTo = /^\+?[\d\s().-]{7,}$/.test(smsTo.trim());
+  // Match the server's E.164 rule (mailer/sms strips separators then requires
+  // +<8-15 digits>) so a number the server will reject is caught before sending.
+  const validSmsTo = /^\+\d{8,15}$/.test(smsTo.trim().replace(/[\s().-]/g, ''));
   const doSendSms = () => {
     if (!validSmsTo || !smsBody.trim() || smsState === 'sending') return;
     tap();
@@ -2187,7 +2230,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
               )
             ) : sendraTab === 'texts' ? (
               smsReady === null ? (
-                <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
+                numErr
+                  ? <button className="ag-send-btn ghost" style={{ marginTop: 12 }} onClick={() => { tap(); setNumErr(''); smsStatus().then((s) => { if (!mountedRef.current) return; if (s.failed) { setNumErr('Still couldn’t load — check your connection.'); return; } setSmsReady(s.ready); setSmsNumber(s.number); }); }}>Couldn’t load texting — tap to retry</button>
+                  : <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
               ) : !smsReady ? (
                 <div className="ag-compose">
                   <p className="ag-foot" style={{ textAlign: 'left', margin: '0 0 2px' }}>Get a phone number to send texts from. Pick an area code (optional) and search.</p>
@@ -2223,7 +2268,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 </div>
               ) : (
                 <div className="ag-compose">
-                  <div className="ag-sms-conn"><span>✓ {smsNumber}</span><button onClick={doReleaseNumber}>Release</button></div>
+                  <div className="ag-sms-conn"><span>✓ {smsNumber}</span><button className={relArmed ? 'armed' : ''} disabled={relBusy} onClick={doReleaseNumber}>{relBusy ? 'Releasing…' : relArmed ? 'Tap again to release' : 'Release'}</button></div>
+                  {numErr && <div className="ag-send-err">{numErr}</div>}
                   <input
                     className="ag-field" type="tel" inputMode="tel" autoCapitalize="none" autoCorrect="off"
                     placeholder="To (+1 555 123 4567)" value={smsTo}
@@ -2958,9 +3004,11 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 </div>
                 {allTags.length > 0 && (
                   <div className="ag-seg-row">
-                    <button className={`ag-seg${tag ? '' : ' on'}`} onClick={() => { tap(); setContactTag(''); }}>All</button>
+                    {/* Switching segments clears the selection so the bulk count
+                        can't include people from a segment no longer in view. */}
+                    <button className={`ag-seg${tag ? '' : ' on'}`} onClick={() => { tap(); setContactTag(''); setContactSel(new Set()); }}>All</button>
                     {allTags.map((t) => (
-                      <button key={t} className={`ag-seg${tag === t ? ' on' : ''}`} onClick={() => { tap(); setContactTag(tag === t ? '' : t); }}>{t}</button>
+                      <button key={t} className={`ag-seg${tag === t ? ' on' : ''}`} onClick={() => { tap(); setContactTag(tag === t ? '' : t); setContactSel(new Set()); }}>{t}</button>
                     ))}
                   </div>
                 )}

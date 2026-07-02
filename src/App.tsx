@@ -393,7 +393,10 @@ export default function App() {
   function wipeLocalData() {
     // Drop the cached connectors snapshot + node positions so a shared device
     // doesn't flash the previous user's apps on the next Connectors open.
-    try { localStorage.removeItem('gf_connstatus'); localStorage.removeItem('gf_connpos'); } catch { /* ignore */ }
+    try {
+      localStorage.removeItem('gf_connstatus'); localStorage.removeItem('gf_connpos');
+      localStorage.removeItem('gf_pending_send'); // any in-flight compose draft
+    } catch { /* ignore */ }
     setConnApps([]);
     setBrokenApps([]);
   }
@@ -401,6 +404,10 @@ export default function App() {
   async function signOut() {
     wipeLocalData();
     await supabase.auth.signOut();
+    // Full reload: module-level in-memory caches (inbox, contacts, telegram in
+    // AgentsScreen) survive React unmount, so without this the next user on a
+    // shared device could see the previous user's mail/contacts.
+    try { window.location.reload(); } catch { /* ignore */ }
   }
 
   // Permanently delete the account: server wipes every row this user owns and
@@ -419,6 +426,7 @@ export default function App() {
       setConfirmDelete(false);
       wipeLocalData();
       await supabase.auth.signOut();
+      try { window.location.reload(); } catch { /* ignore */ }
     } catch (e) {
       flashNote(`Couldn't delete your account: ${e instanceof Error ? e.message : 'please try again'}.`, 7000);
     } finally {

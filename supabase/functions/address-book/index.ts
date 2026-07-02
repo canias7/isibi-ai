@@ -74,14 +74,15 @@ function whBadUrl(raw: string): boolean {
   let u: URL;
   try { u = new URL(raw); } catch { return true; }
   if (u.protocol !== "https:") return true;
-  const h = u.hostname.toLowerCase();
+  let h = u.hostname.toLowerCase();
+  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
+  if (h.includes(":")) return true; // any IPv6 literal — too many loopback/mapped forms to allowlist
   if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
   if (h === "169.254.169.254" || h === "metadata.google.internal") return true;
   if (/^(10|127|0)\./.test(h)) return true;
   if (/^192\.168\./.test(h)) return true;
   if (/^169\.254\./.test(h)) return true;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
-  if (h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80")) return true;
   return false;
 }
 async function whSign(secret: string, ts: string, body: string): Promise<string> {
@@ -190,7 +191,13 @@ Deno.serve(async (req: Request) => {
     if (action === "delete") {
       const id = vId(body?.id);
       if (!id) return json(req, { error: "missing_id" });
-      await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${id}&user_id=eq.${uid}`, { method: "DELETE", headers: sbHeaders });
+      // Confirm the row was actually deleted before telling the client (and the
+      // user's webhook consumers) it's gone — Prefer:count so we can check.
+      const del = await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${id}&user_id=eq.${uid}`, { method: "DELETE", headers: { ...sbHeaders, prefer: "count=exact" } });
+      if (!del.ok) return json(req, { error: "delete_failed" }, 502);
+      const range = del.headers.get("content-range") || "";
+      const affected = parseInt(range.split("/")[1] || "0", 10);
+      if (!affected) return json(req, { error: "not_found" }, 404);
       bg(fanout(uid, "contact.deleted", { id }));
       return json(req, { ok: true });
     }
