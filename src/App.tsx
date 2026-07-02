@@ -579,9 +579,22 @@ export default function App() {
         <Suspense fallback={<RouteFallback />}>
           <div style={{ display: 'contents' }} className={mktUi.closing ? 'mkt-wrap gf-out' : 'mkt-wrap'}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setMktOpen(false); }} />}>
-            {mktTab === 'email'
-              ? <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} />
-              : <WingupScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} />}
+            {/* The stage owns the enter/exit beat for the whole Marketing page.
+                The screens' own memgIn is suppressed inside it — re-showing a
+                display:none element restarts CSS animations, so per-screen
+                entrances would replay (a hub-revealing cross-fade) on every
+                area flip. */}
+            <div className="mkt-stage">
+            {/* Both engines stay mounted; area flips are pure show/hide. A
+                remount here replays the overlay entrance over the hub (an
+                ugly cross-fade), reloads all data, and loses in-progress
+                state (a half-written email would die on a peek at Social). */}
+            <div className={mktTab === 'email' ? 'mkt-area' : 'mkt-area mkt-area-off'}>
+              <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} active={mktTab === 'email'} />
+            </div>
+            <div className={mktTab === 'social' ? 'mkt-area' : 'mkt-area mkt-area-off'}>
+              <WingupScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} active={mktTab === 'social'} />
+            </div>
             {/* One Marketing sidebar (desktop): every section of both areas in
                 a single nav — the screens' own sidebars retire behind it. */}
             <nav className="mkt-side" aria-label="Marketing">
@@ -630,6 +643,7 @@ export default function App() {
               >
                 <img src={WINGUP_LOGO} alt="" aria-hidden /> Social
               </button>
+            </div>
             </div>
             </ErrorBoundary>
           </div>

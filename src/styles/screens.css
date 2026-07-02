@@ -299,6 +299,27 @@
 .mkt-wrap .memg-top,
 .mkt-wrap .wingup-top { margin-bottom: 52px; }
 
+/* The stage carries the one enter/exit beat for the whole Marketing page
+   (screens, sidebar, dock together). It never re-hides while open, so the
+   entrance can't replay on area flips. */
+.mkt-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  animation: memgIn var(--dur-screen) var(--ease-enter);
+}
+.gf-out .mkt-stage { animation: memgOut var(--dur-exit) var(--ease-exit) forwards; }
+@media (prefers-reduced-motion: reduce) { .mkt-stage, .gf-out .mkt-stage { animation: none; } }
+
+/* The two engines' show/hide wrappers: no box of their own, and the hidden
+   one is display:none so its fixed-position screen fully disappears. The
+   screens' own entrance is off here — display:none → shown restarts CSS
+   animations, which would replay the fade (hub bleeding through) per flip. */
+.mkt-area { display: contents; }
+.mkt-area-off { display: none; }
+.mkt-wrap .mkt-area .memg,
+.gf-out .mkt-wrap .mkt-area .memg { animation: none; }
+
 /* ---- The one Marketing sidebar (desktop) ----
    Every section of both areas in a single nav. Mobile keeps the dock +
    per-app drawers; from 1024px this column replaces them all. */
