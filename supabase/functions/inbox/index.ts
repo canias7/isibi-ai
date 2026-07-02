@@ -101,6 +101,26 @@ Deno.serve(async (req: Request) => {
   // real mailbox search, not just a filter over the page the client already has.
   const q = (url.searchParams.get("q") || "").trim().slice(0, 200);
 
+  // ?profile=1 -> the mailbox's own address ({ email }), so the composer can
+  // show the real account instead of just "Gmail"/"Outlook".
+  if (url.searchParams.get("profile")) {
+    try {
+      const slug = (app === "outlook" || app === "m365") ? "OUTLOOK_OUTLOOK_GET_PROFILE" : "GMAIL_GET_PROFILE";
+      const res = await fetch(`https://backend.composio.dev/api/v3/tools/execute/${slug}`, {
+        method: "POST",
+        headers: { "x-api-key": API_KEY, "content-type": "application/json" },
+        body: JSON.stringify({ user_id: uid, arguments: {} }),
+      });
+      const body = await res.json().catch(() => ({}));
+      const data = ((body as Record<string, unknown>)?.data ?? body) as Record<string, unknown>;
+      const inner = (data?.response_data ?? data?.data ?? data) as Record<string, unknown>;
+      const email = String(inner?.emailAddress ?? inner?.mail ?? inner?.userPrincipalName ?? data?.emailAddress ?? "").trim();
+      return json(req, { email });
+    } catch {
+      return json(req, { email: "" });
+    }
+  }
+
   try {
     const dstr = (d: Date, o: Intl.DateTimeFormatOptions) => {
       try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(d); } catch { return ""; }

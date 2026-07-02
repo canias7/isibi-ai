@@ -7,7 +7,7 @@ import {
 } from './icons';
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
-import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchEmailHtml, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
+import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchEmailHtml, fetchMailboxProfile, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
 import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 import { SENDRA_TOOLS, type SendraTab, type SendraNavId, type MktNavRequest } from './marketingNav';
@@ -334,6 +334,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // Forward mode: the composer carries the original email's full HTML and an
   // optional note typed above it. `fwdSeq` invalidates an in-flight fetch of
   // the original if the user has moved on before it lands.
+  // Each connected mailbox's own address ("you@gmail.com"), fetched once so
+  // the composer's From shows real accounts instead of "Gmail"/"Outlook".
+  const [acctEmails, setAcctEmails] = useState<Record<string, string>>({});
   const [forwarding, setForwarding] = useState(false);
   const [fwdNote, setFwdNote] = useState('');
   const fwdSeqRef = useRef(0);
@@ -777,6 +780,17 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (navRequest && navRequest.area === 'email' && navRequest.n > 0) navTo(navRequest.id as SendraNavId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navRequest?.n]);
+
+  // Resolve the connected mailboxes' own addresses for the From row.
+  useEffect(() => {
+    if (!commsApp || commsApp === 'telegram' || emailTab !== 'compose') return;
+    for (const a of mailApiApps) {
+      if (acctEmails[a] !== undefined) continue;
+      setAcctEmails((m) => ({ ...m, [a]: '' })); // mark in-flight
+      fetchMailboxProfile(a).then((e) => { if (mountedRef.current && e) setAcctEmails((m) => ({ ...m, [a]: e })); }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commsApp, emailTab, mailApiApps.join(',')]);
 
   // The compose screen's template picker needs the list even when the
   // Templates/Campaigns tabs (which normally fetch it) were never opened.
@@ -2835,16 +2849,21 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   // received the mail — show the real address, nothing to choose.
                   <div className="ag-from">
                     <span className="ag-from-lbl">From</span>
-                    <span className="ag-from-fixed">{readingTo || (sendApp === 'outlook' ? 'Outlook' : 'Gmail')}</span>
+                    <span className="ag-from-fixed">{readingTo || acctEmails[sendApp] || (sendApp === 'outlook' ? 'Outlook' : 'Gmail')}</span>
                   </div>
-                ) : mailApiApps.length >= 2 && (
+                ) : mailApiApps.length >= 2 ? (
                   <div className="ag-from">
                     <span className="ag-from-lbl">From</span>
                     <select className="ag-field ag-from-sel" value={sendApp} onChange={(e) => { tap(); setSendApp(e.target.value as 'gmail' | 'outlook'); }}>
-                      {mailApiApps.map((a) => <option key={a} value={a}>{a === 'outlook' ? 'Outlook' : 'Gmail'}</option>)}
+                      {mailApiApps.map((a) => <option key={a} value={a}>{acctEmails[a] || (a === 'outlook' ? 'Outlook' : 'Gmail')}</option>)}
                     </select>
                   </div>
-                )}
+                ) : acctEmails[sendApp] ? (
+                  <div className="ag-from">
+                    <span className="ag-from-lbl">From</span>
+                    <span className="ag-from-fixed">{acctEmails[sendApp]}</span>
+                  </div>
+                ) : null}
                 <div className="ag-to-row">
                   <input
                     className="ag-field" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off"

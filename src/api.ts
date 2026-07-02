@@ -57,6 +57,15 @@ export async function fetchInbox(max = 20, pageToken?: string, app = 'gmail', qu
   return { items: Array.isArray(j.items) ? j.items : [], nextPageToken: j.nextPageToken ?? null };
 }
 
+// The mailbox's own address ("you@gmail.com") — shown in the composer's From.
+export async function fetchMailboxProfile(app = 'gmail'): Promise<string> {
+  const token = await authToken();
+  const res = await fetch(`${INBOX_API}?profile=1&app=${encodeURIComponent(app)}`, { headers: { authorization: `Bearer ${token}` } });
+  if (!res.ok) return '';
+  const j = await res.json().catch(() => ({}));
+  return typeof j.email === 'string' ? j.email : '';
+}
+
 // Search the mailbox(es) server-side (Gmail's `query` arg searches the whole
 // mailbox; Outlook widens its fetch + filters). Results are merged newest-first
 // across providers. One provider failing doesn't sink the others.
