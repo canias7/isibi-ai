@@ -125,6 +125,8 @@
   .mkt-wrap .ag-compose .ag-from { justify-content: center; }
   .mkt-wrap .ag-compose .ag-from .ag-from-sel { flex: 0 0 auto; width: auto; padding-right: 34px; }
   .mkt-wrap .ag-compose .ag-cc-toggle { text-align: left; }
+  /* An applied designed template gets real room to render. */
+  .mkt-wrap .ag-compose .ag-tpl-frame { height: 620px; }
 
   /* Quiet reply/forward chips above the open mail. */
   .ag-reader-topbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }

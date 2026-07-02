@@ -575,7 +575,7 @@ function EmailBody({ id, app, fallback, onMeta }: { id: string; app?: string; fa
   );
 }
 
-export function EmailDetail({ msg }: { msg: EmailMessage }) {
+export function EmailDetail({ msg, onMeta }: { msg: EmailMessage; onMeta?: (m: EmailMeta) => void }) {
   // The model may send a full object or just an {"id"}; either way we fetch the
   // real message by id and fill any header field it didn't provide, so the card
   // is complete for every email.
@@ -609,7 +609,7 @@ export function EmailDetail({ msg }: { msg: EmailMessage }) {
       {subject && <div className="gf-msg-subject">{subject}</div>}
 
       {msg.id ? (
-        <EmailBody id={msg.id} app={app} fallback={msg.body || ''} onMeta={setMeta} />
+        <EmailBody id={msg.id} app={app} fallback={msg.body || ''} onMeta={(m) => { setMeta(m); onMeta?.(m); }} />
       ) : (
         <>
           <div className="gf-msg-body">{msg.body}</div>

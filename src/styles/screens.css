@@ -332,6 +332,33 @@
 .mkt-wrap .ag-send-btn.ghost { background: var(--glass); color: var(--text); }
 .mkt-wrap .ag-cc-toggle { color: var(--text-dim); transition: color 140ms ease; }
 .mkt-wrap .ag-cc-toggle:hover { color: #fff; }
+/* Focus rings are white here, never brand-orange. */
+.mkt-wrap .ag-field:focus { border-color: rgba(255, 255, 255, 0.45); }
+/* The template picker: native select dressed properly — dark popup
+   (color-scheme), no OS chrome, quiet chevron. */
+.mkt-wrap .ag-tpl-select {
+  color-scheme: dark;
+  appearance: none;
+  -webkit-appearance: none;
+  font-weight: 600;
+  cursor: pointer;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a948a' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+}
+/* Reply's locked sender: the account's real address as a quiet pill. */
+.mkt-wrap .ag-from-fixed {
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-size: var(--fs-body-s);
+  font-weight: 600;
+}
+/* Template preview chrome joins the black & white system. */
+.mkt-wrap .ag-tpl-preview-bar { background: #101010; }
+.mkt-wrap .ag-tpl-preview-bar button { color: var(--text-dim); }
+.mkt-wrap .ag-tpl-preview-bar button:hover { color: #fff; }
 
 /* The two engines' show/hide wrappers: no box of their own, and the hidden
    one is display:none so its fixed-position screen fully disappears. The

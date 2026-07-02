@@ -323,6 +323,11 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [mergedTok, setMergedTok] = useState<Record<string, string | null>>({}); // combined inbox: each mailbox's next-page token
   const [frontier, setFrontier] = useState<Record<string, number>>({}); // combined inbox: oldest fetched ts per mailbox (watermark)
   const [reading, setReading] = useState<EmailItem | null>(null);
+  // The address the open email was delivered to (the user's own mailbox
+  // address) — surfaced from the message metadata so a reply's From row can
+  // show the real account instead of just "Gmail".
+  const [readingTo, setReadingTo] = useState('');
+  useEffect(() => { setReadingTo(''); }, [reading?.id]);
   // Desktop two-pane inbox (list + reading pane). Static like App's
   // wideViewport — mid-session resizes across the breakpoint are rare.
   const [wide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches);
@@ -1543,11 +1548,17 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
           <button className="ag-chip-btn" onClick={openForward}>Forward</button>
         </div>
       )}
-      <EmailDetail msg={{
-        id: reading.id, app: reading.app, from: reading.from, email: reading.email,
-        subject: reading.subject, time: reading.time, unread: reading.unread,
-        draft: reading.draft, body: reading.snippet || '',
-      }} />
+      <EmailDetail
+        msg={{
+          id: reading.id, app: reading.app, from: reading.from, email: reading.email,
+          subject: reading.subject, time: reading.time, unread: reading.unread,
+          draft: reading.draft, body: reading.snippet || '',
+        }}
+        onMeta={(m) => {
+          const t = (m.to || '').match(/<([^>]+)>/)?.[1] ?? (m.to || '');
+          if (t.trim()) setReadingTo(t.trim());
+        }}
+      />
       {/* Mobile only — the desktop reading pane carries no bottom buttons. */}
       {mailConnected && !splitMail ? (
         <div className="ag-reader-actions" style={{ display: 'flex', gap: 10 }}>
@@ -2786,7 +2797,14 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
               </div>
             ) : (
               <>
-                {mailApiApps.length >= 2 && (
+                {replyThreadId ? (
+                  // A reply always goes from the mailbox that received the
+                  // mail — show the real address, nothing to choose.
+                  <div className="ag-from">
+                    <span className="ag-from-lbl">From</span>
+                    <span className="ag-from-fixed">{readingTo || (sendApp === 'outlook' ? 'Outlook' : 'Gmail')}</span>
+                  </div>
+                ) : mailApiApps.length >= 2 && (
                   <div className="ag-from">
                     <span className="ag-from-lbl">From</span>
                     <select className="ag-field ag-from-sel" value={sendApp} onChange={(e) => { tap(); setSendApp(e.target.value as 'gmail' | 'outlook'); }}>
