@@ -8,7 +8,7 @@ import {
 import { useFocusTrap } from './a11y';
 import { tap } from './haptics';
 import { fetchInbox, fetchInboxMergedPaged, searchInbox, sendEmail, fetchEmailHtml, fetchMailboxProfile, fetchContacts, listSavedContacts, addSavedContact, updateSavedContact, deleteSavedContact, sendSms, smsStatus, searchSmsNumbers, buySmsNumber, releaseSmsNumber, listCampaigns, createCampaign, sendCampaignBatch, unscheduleCampaign, campaignStats, type CampaignStats, getDeliverability, type Reputation, listWebhooks, addWebhook, removeWebhook, toggleWebhook, testWebhook, setWebhookEvents, listWebhookDeliveries, type WebhookDelivery, listAutomations, saveAutomation, toggleAutomation, removeAutomation, listSuppressions, removeSuppression, listTemplates, saveTemplate, deleteTemplate, chatTemplateStart, getTemplateJob, type TemplateJob, uploadEmailImage, tgChats, tgMessages, tgSend, type TgChat, type TgMessage, type Campaign, type SmsNumber, type WebhookEndpoint, type Automation, type AutomationStep, type SavedContact, type Suppression, type Template, type ChatMsg } from './api';
-import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, type EmailItem, type ContactItem } from './EmailList';
+import { EmailList, EmailDetail, EmailSkeleton, ContactsList, buildSrcDoc, providerOf, type EmailItem, type ContactItem } from './EmailList';
 import { SENDRA_LOGO } from './sendraLogo';
 import { SENDRA_TOOLS, type SendraTab, type SendraNavId, type MktNavRequest } from './marketingNav';
 import { mailerListDomains, mailerAddDomain, mailerDomainRecords, mailerVerifyDomain, mailerRemoveDomain, mailerSend, mailerMessages, mailerMessage, type SendingDomain, type DnsRecord, type Message as SentEmail } from './mailer';
@@ -339,6 +339,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [acctEmails, setAcctEmails] = useState<Record<string, string>>({});
   const [forwarding, setForwarding] = useState(false);
   const [fwdNote, setFwdNote] = useState('');
+  const [fwdLoading, setFwdLoading] = useState(false); // forward's full-HTML fetch still in flight
+  const [sendErr, setSendErr] = useState('');          // inline compose error (bad Cc/Bcc, etc.)
   const fwdSeqRef = useRef(0);
   // Desktop two-pane inbox (list + reading pane). Static like App's
   // wideViewport — mid-session resizes across the breakpoint are rare.
@@ -552,6 +554,8 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
 
   // Which provider the mail workspace is talking to (Composio app id -> our param).
   const mailApp = commsApp === 'm365' ? 'outlook' : 'gmail';
+  const mailAppRef = useRef(mailApp);
+  mailAppRef.current = mailApp;
   const mailConnected = commsApp === 'm365'
     ? connApps.includes('m365') || connApps.includes('outlook')
     : connApps.includes('gmail');
@@ -591,7 +595,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // ---- mail workspace loaders (provider-aware) ----
   const loadPage = useCallback((idx: number) => {
     setRefreshing(true);
-    if (idx === 0 && !inboxCache[mailApp]) setInboxState('loading');
+    // Seed from cache so a remount (state reset to []) shows the cached list
+    // immediately instead of a skeleton, and a failed refresh keeps it visible.
+    if (idx === 0 && inboxCache[mailApp]) { setInbox(inboxCache[mailApp]!); setInboxState('ok'); }
+    else if (idx === 0) setInboxState('loading');
     fetchInbox(PAGE_SIZE, tokensRef.current[idx], mailApp)
       .then(({ items, nextPageToken }) => {
         if (!mountedRef.current) return;
@@ -600,7 +607,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
         if (idx === 0) inboxCache[mailApp] = items;
         inboxScrollRef.current?.scrollTo({ top: 0 });
       })
-      .catch(() => { if (mountedRef.current && idx === 0 && !inboxCache[mailApp]) setInboxState('err'); })
+      .catch(() => {
+        if (!mountedRef.current) return;
+        if (idx !== 0) { setNote('Couldn’t load that page — check your connection and try again.'); return; }
+        // Only surface an error when there's nothing cached to fall back to.
+        if (inboxCache[mailApp]) { setInbox(inboxCache[mailApp]!); setInboxState('ok'); }
+        else setInboxState('err');
+      })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, [mailApp]);
   const refreshInbox = useCallback(() => { tokensRef.current = [undefined]; loadPage(0); }, [loadPage]);
@@ -609,14 +622,19 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const combinedApps = useCallback(() => ['gmail', 'outlook'].filter((a) => (a === 'gmail' ? connApps.includes('gmail') : connApps.includes('m365') || connApps.includes('outlook'))), [connApps]);
   const loadMerged = useCallback(() => {
     setRefreshing(true);
-    if (!inboxCache['all']) setInboxState('loading');
+    if (inboxCache['all']) { setInbox(inboxCache['all']!); setInboxState('ok'); }
+    else setInboxState('loading');
     fetchInboxMergedPaged(combinedApps().map((a) => ({ app: a })))
       .then(({ items, next }) => {
         if (!mountedRef.current) return;
         setInbox(items); setInboxState('ok'); inboxCache['all'] = items; setMergedTok(next); setFrontier(oldestPerApp(items));
         inboxScrollRef.current?.scrollTo({ top: 0 });
       })
-      .catch(() => { if (mountedRef.current && !inboxCache['all']) setInboxState('err'); })
+      .catch(() => {
+        if (!mountedRef.current) return;
+        if (inboxCache['all']) { setInbox(inboxCache['all']!); setInboxState('ok'); }
+        else setInboxState('err');
+      })
       .finally(() => { if (mountedRef.current) setRefreshing(false); });
   }, [combinedApps]);
   // "Load older": pull the next page from every mailbox that still has one, then
@@ -660,13 +678,22 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
       inboxCache[combinedInbox ? 'all' : mailApp] = out;
       return out;
     });
+    // The visible list may be server-search results, not `inbox` — clear the dot
+    // there too so a read email doesn't keep its unread marker in search.
+    setSearchResults((prev) => prev && prev.map((m) => (m.id === it.id ? { ...m, unread: false } : m)));
   };
 
   const loadContacts = useCallback(() => {
-    if (!contactsCache[mailApp]) setContactsState('loading');
-    fetchContacts(mailApp)
-      .then((items) => { if (mountedRef.current) { contactsCache[mailApp] = items; setContacts(items); setContactsState('ok'); } })
-      .catch(() => { if (mountedRef.current && !contactsCache[mailApp]) setContactsState('err'); });
+    const app = mailApp; // capture: a slow response for a since-switched mailbox must not repaint the current one
+    if (contactsCache[app]) { setContacts(contactsCache[app]); setContactsState('ok'); }
+    else setContactsState('loading');
+    fetchContacts(app)
+      .then((items) => { contactsCache[app] = items; if (mountedRef.current && app === mailAppRef.current) { setContacts(items); setContactsState('ok'); } })
+      .catch(() => {
+        if (!mountedRef.current || app !== mailAppRef.current) return;
+        if (contactsCache[app]) { setContacts(contactsCache[app]); setContactsState('ok'); }
+        else setContactsState('err');
+      });
   }, [mailApp]);
 
   // ---- telegram workspace loaders ----
@@ -708,6 +735,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     const term = inboxQ.trim();
     if (term.length < 2) { setSearchResults(null); setSearchBusy(false); return; }
     let alive = true;
+    // Clear last query's hits up front so the changed term doesn't render stale
+    // results (or a wrong "No emails match") during the debounce + flight.
+    setSearchResults(null);
     setSearchBusy(true);
     const t = setTimeout(() => {
       searchInbox(combinedApps(), term)
@@ -799,9 +829,11 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   useEffect(() => {
     if (!commsApp || commsApp === 'telegram' || emailTab !== 'compose') return;
     for (const a of mailApiApps) {
-      if (acctEmails[a] !== undefined) continue;
+      if (acctEmails[a]) continue; // resolved already; '' (in-flight/failed) may retry on the next compose open
       setAcctEmails((m) => ({ ...m, [a]: '' })); // mark in-flight
-      fetchMailboxProfile(a).then((e) => { if (mountedRef.current && e) setAcctEmails((m) => ({ ...m, [a]: e })); }).catch(() => {});
+      fetchMailboxProfile(a)
+        .then((e) => { if (mountedRef.current) { if (e) setAcctEmails((m) => ({ ...m, [a]: e })); else setAcctEmails((m) => { const n = { ...m }; delete n[a]; return n; }); } })
+        .catch(() => { if (mountedRef.current) setAcctEmails((m) => { const n = { ...m }; delete n[a]; return n; }); });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commsApp, emailTab, mailApiApps.join(',')]);
@@ -881,10 +913,28 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // Compose helpers
   const openCompose = () => {
     tap();
-    setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setComposeKind('text'); setToPicker(false);
-    setCc(''); setBcc(''); setShowCc(false);
-    setForwarding(false); setFwdNote(''); fwdSeqRef.current++;
-    setSendState('idle'); setSendApp(mailApp); setEmailTab('compose');
+    // Recover a send that failed while the overlay was closed (see doSend).
+    let recovered = false;
+    try {
+      const raw = localStorage.getItem('gf_pending_send');
+      if (raw) {
+        const d = JSON.parse(raw);
+        setReplyThreadId(d.reply ?? null); setTo(d.to || ''); setSubject(d.subject || '');
+        setBodyText(d.body || ''); setComposeKind(d.kind === 'html' ? 'html' : 'text');
+        setCc(d.cc || ''); setBcc(d.bcc || ''); setShowCc(!!d.showCc);
+        setForwarding(!!d.fwd); setFwdNote(d.note || ''); setSendApp(d.app || mailApp);
+        setSendErr('This draft didn’t send last time — review and try again.');
+        localStorage.removeItem('gf_pending_send');
+        recovered = true;
+      }
+    } catch { /* ignore */ }
+    if (!recovered) {
+      setReplyThreadId(null); setTo(''); setSubject(''); setBodyText(''); setComposeKind('text');
+      setCc(''); setBcc(''); setShowCc(false);
+      setForwarding(false); setFwdNote(''); setSendApp(mailApp); setSendErr('');
+    }
+    setToPicker(false); fwdSeqRef.current++;
+    setSendState('idle'); setEmailTab('compose');
     loadContacts(); loadSaved();  // mailbox + saved contacts for the To picker
     listTemplates().then((t) => { if (mountedRef.current) setTplList(t); });  // for the body template picker
   };
@@ -898,7 +948,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   };
   const openReply = () => {
     if (!reading) return;
-    tap();
+    tap(); setSendErr('');
     const subj = reading.subject || '';
     setReplyThreadId(reading.threadId || null);
     setTo(reading.email || '');
@@ -907,7 +957,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     setCc(''); setBcc(''); setShowCc(false);
     setForwarding(false); setFwdNote(''); fwdSeqRef.current++;
     setSendState('idle');
-    setSendApp(reading.app === 'outlook' ? 'outlook' : 'gmail'); // reply through the email's own mailbox
+    // Reply through the email's OWN mailbox — providerOf falls back to the id
+    // shape when `app` is absent (Outlook cards often lack it), so an Outlook
+    // reply doesn't wrongly route through Gmail.
+    setSendApp(providerOf(reading.app, reading.id));
     setReading(null);
     setEmailTab('compose');
   };
@@ -924,7 +977,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     const subj = item.subject || '';
     const who = item.email ? `${item.from || ''} <${item.email}>`.trim() : (item.from || 'Unknown');
     setReplyThreadId(null);
-    setForwarding(true); setFwdNote('');
+    setForwarding(true); setFwdNote(''); setSendErr('');
     setTo('');
     setSubject(/^fwd:/i.test(subj) ? subj : `Fwd: ${subj}`);
     setBodyText(`\n\n---------- Forwarded message ----------\nFrom: ${who}\n${item.time ? `Date: ${item.time}\n` : ''}Subject: ${subj}\n\n${item.snippet || ''}`);
@@ -937,42 +990,64 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     loadContacts(); loadSaved();
     if (item.id) {
       const seq = ++fwdSeqRef.current;
+      setFwdLoading(true);
       fetchEmailHtml(item.id, item.app).then((r) => {
-        if (!mountedRef.current || fwdSeqRef.current !== seq || !r.html) return;
-        const head = `<div style="font-family:Arial,sans-serif;font-size:13px;color:#555;margin:0 0 14px">---------- Forwarded message ----------<br>From: ${escapeHtml(who)}<br>${item.time ? `Date: ${escapeHtml(item.time)}<br>` : ''}Subject: ${escapeHtml(subj)}</div>`;
-        setComposeKind('html');
-        setBodyText(head + r.html);
-      }).catch(() => { /* the snippet fallback stands */ });
+        if (!mountedRef.current || fwdSeqRef.current !== seq) return;
+        if (r.html) {
+          const head = `<div style="font-family:Arial,sans-serif;font-size:13px;color:#555;margin:0 0 14px">---------- Forwarded message ----------<br>From: ${escapeHtml(who)}<br>${item.time ? `Date: ${escapeHtml(item.time)}<br>` : ''}Subject: ${escapeHtml(subj)}</div>`;
+          setComposeKind('html');
+          setBodyText(head + r.html);
+        }
+        setFwdLoading(false);
+      }).catch(() => { if (mountedRef.current && fwdSeqRef.current === seq) setFwdLoading(false); });
     }
   };
   const validTo = EMAIL_RE.test(to.trim());
-  const splitAddrs = (s: string) => s.split(/[,;]/).map((x) => x.trim()).filter((x) => EMAIL_RE.test(x));
+  // Split an addr field into valid entries + any non-empty token that FAILED to
+  // parse (so a typo'd Cc isn't silently dropped from the send).
+  const parseAddrs = (s: string) => {
+    const toks = s.split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+    return { valid: toks.filter((x) => EMAIL_RE.test(x)), bad: toks.filter((x) => !EMAIL_RE.test(x)) };
+  };
   // Fire-and-forget: the mail sends in the background while the user goes
-  // straight back to the inbox — no confirm sheet, no "sent" screen. If the
-  // send fails, the composer reopens with the draft restored and the error
-  // line showing, so nothing is ever lost silently.
+  // straight back to the inbox — no confirm sheet, no "sent" screen. A failed
+  // send is never lost: the draft is stashed in localStorage for the whole
+  // flight, restored to the composer if we're still there, and recovered on the
+  // next open if the overlay was closed mid-flight.
   const doSend = () => {
-    tap();
-    const ccArr = splitAddrs(cc), bccArr = splitAddrs(bcc);
+    const ccP = parseAddrs(cc), bccP = parseAddrs(bcc);
+    if (ccP.bad.length || bccP.bad.length) {
+      setSendErr(`Fix ${ccP.bad.length ? 'Cc' : 'Bcc'}: “${(ccP.bad[0] || bccP.bad[0])}” isn’t a valid email.`);
+      setShowCc(true);
+      return;
+    }
+    if (forwarding && fwdLoading) { setSendErr('Still loading the original email — one moment.'); return; }
+    tap(); setSendErr('');
     const note = forwarding && composeKind === 'html' && fwdNote.trim()
       ? `<div style="font-family:Arial,sans-serif;font-size:14px;white-space:pre-wrap;margin:0 0 16px">${escapeHtml(fwdNote.trim())}</div>`
       : '';
-    const payload = { to: to.trim(), subject: subject.trim(), body: note + bodyText, threadId: replyThreadId || undefined, cc: ccArr.length ? ccArr : undefined, bcc: bccArr.length ? bccArr : undefined, app: sendApp, html: composeKind === 'html' };
-    const draft = { to, cc, bcc, subject, body: bodyText, kind: composeKind, reply: replyThreadId, showCc, fwd: forwarding, note: fwdNote };
+    const payload = { to: to.trim(), subject: subject.trim(), body: note + bodyText, threadId: replyThreadId || undefined, cc: ccP.valid.length ? ccP.valid : undefined, bcc: bccP.valid.length ? bccP.valid : undefined, app: sendApp, html: composeKind === 'html' };
+    const draft = { to, cc, bcc, subject, body: bodyText, kind: composeKind, reply: replyThreadId, showCc, fwd: forwarding, note: fwdNote, app: sendApp };
+    try { localStorage.setItem('gf_pending_send', JSON.stringify(draft)); } catch { /* quota */ }
     setSendState('idle');
     setTo(''); setCc(''); setBcc(''); setSubject(''); setBodyText(''); setComposeKind('text'); setShowCc(false);
     setForwarding(false); setFwdNote(''); fwdSeqRef.current++;
     setReplyThreadId(null);
     setEmailTab('inbox');
-    sendEmail(payload).catch(() => {
-      if (!mountedRef.current) return;
-      setTo(draft.to); setCc(draft.cc); setBcc(draft.bcc); setSubject(draft.subject);
-      setBodyText(draft.body); setComposeKind(draft.kind); setShowCc(draft.showCc);
-      setForwarding(draft.fwd); setFwdNote(draft.note);
-      setReplyThreadId(draft.reply);
-      setEmailTab('compose');
-      setSendState('err');
-    });
+    sendEmail(payload)
+      .then(() => { try { localStorage.removeItem('gf_pending_send'); } catch { /* ignore */ } })
+      .catch(() => {
+        // Unmounted, or the user already started a NEW draft → don't clobber their
+        // work; leave the pending record so the next compose-open recovers it.
+        if (!mountedRef.current || to || subject || bodyText || commsApp === null) { setSendState('idle'); return; }
+        try { localStorage.removeItem('gf_pending_send'); } catch { /* ignore */ }
+        setTo(draft.to); setCc(draft.cc); setBcc(draft.bcc); setSubject(draft.subject);
+        setBodyText(draft.body); setComposeKind(draft.kind); setShowCc(draft.showCc);
+        setForwarding(draft.fwd); setFwdNote(draft.note); setSendApp(draft.app);
+        setReplyThreadId(draft.reply);
+        setEmailTab('compose');
+        setSendState('err');
+      });
   };
 
   // Telegram send
@@ -2976,7 +3051,10 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   // received the mail — show the real address, nothing to choose.
                   <div className="ag-from">
                     <span className="ag-from-lbl">From</span>
-                    <span className="ag-from-fixed">{readingTo || acctEmails[sendApp] || (sendApp === 'outlook' ? 'Outlook' : 'Gmail')}</span>
+                    {/* Show the To address only when it's actually one of the user's
+                        own mailboxes (they were the direct recipient) — otherwise a
+                        Cc'd/list mail would claim the reply comes from a stranger. */}
+                    <span className="ag-from-fixed">{(readingTo && Object.values(acctEmails).some((e) => e && e.toLowerCase() === readingTo.toLowerCase()) ? readingTo : acctEmails[sendApp]) || (sendApp === 'outlook' ? 'Outlook' : 'Gmail')}</span>
                   </div>
                 ) : mailApiApps.length >= 2 ? (
                   <div className="ag-from">
@@ -3059,13 +3137,14 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 ) : (
                   <textarea className="ag-field ag-body" placeholder="Write your message…" value={bodyText} onChange={(e) => setBodyText(e.target.value)} onFocus={() => setToPicker(false)} />
                 )}
-                {sendState === 'err' && <div className="ag-send-err">Couldn’t send — check the address and try again.</div>}
+                {sendErr && <div className="ag-send-err">{sendErr}</div>}
+                {!sendErr && sendState === 'err' && <div className="ag-send-err">Couldn’t send — check the address and try again.</div>}
                 <button
                   className="ag-send-btn"
                   onClick={doSend}
-                  disabled={!validTo || !bodyText.trim()}
+                  disabled={!validTo || !bodyText.trim() || (forwarding && fwdLoading)}
                 >
-                  {replyThreadId ? 'Send reply' : forwarding ? 'Forward' : 'Send'}
+                  {forwarding && fwdLoading ? 'Loading original…' : replyThreadId ? 'Send reply' : forwarding ? 'Forward' : 'Send'}
                 </button>
               </>
             )}
