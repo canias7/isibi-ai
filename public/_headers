@@ -1,0 +1,9 @@
+# Workers Assets header rules (copied into dist/ by Vite).
+# The HTML entry must never be served stale from the edge cache — a cached
+# index.html points at old hashed bundles and resurrects removed UI after a
+# deploy. Hashed /assets/* files are immutable and stay cacheable.
+/
+  Cache-Control: no-store
+
+/index.html
+  Cache-Control: no-store
