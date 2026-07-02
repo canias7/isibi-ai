@@ -332,7 +332,9 @@
 .mkt-wrap .ag-seg.on { color: #0a0a0b; }
 .mkt-wrap .gf-check.on { color: #0a0a0b; }
 /* The hero icons' warm glow reads orange on pure black — neutralize. */
-.mkt-wrap .ag-dom-empty-ic { box-shadow: 0 12px 32px rgba(255, 255, 255, 0.1); }
+.mkt-wrap .ag-dom-empty-ic,
+.mkt-wrap .ag-ce-av-mid,
+.mkt-wrap .ag-cf-avatar { box-shadow: 0 12px 32px rgba(255, 255, 255, 0.1); }
 /* Hardcoded amber avatar in the mail-to picker. */
 .mkt-wrap .ag-mail-av { background: linear-gradient(135deg, #f4f5f7, #ffffff); color: #0a0a0b; }
 
