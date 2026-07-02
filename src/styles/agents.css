@@ -413,8 +413,10 @@
 .ag-camp, .ag-log { display: flex; align-items: center; gap: 10px; padding: 12px 13px; background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; }
 .ag-camp-main { flex: 1; min-width: 0; }
 /* Template row: orange initials tile */
-/* Templates: gallery of live email-preview cards + a dashed "new" tile. */
-.ag-tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+/* Templates: gallery of live email-preview cards + a dashed "new" tile.
+   Three across on desktop; two on narrow screens so cards stay readable. */
+.ag-tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 560px) { .ag-tpl-grid { grid-template-columns: repeat(2, 1fr); } }
 .ag-tpl-new { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 210px; border: 1.5px dashed rgba(255, 255, 255, 0.26); border-radius: 16px; background: transparent; color: var(--text); font: inherit; font-weight: 700; font-size: var(--fs-body-s); cursor: pointer; }
 .ag-tpl-new:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.4); }
 .ag-tpl-new-ic { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--grad-brand); color: var(--on-brand); }
