@@ -130,12 +130,19 @@ function recordsFor(domain: string, selector: string, dkimPublic: string) {
 }
 
 // Resolve TXT records via DNS-over-HTTPS (so verification works from the edge).
-async function dnsTxt(name: string): Promise<string[]> {
+// Two resolvers: Google first, Cloudflare when Google returns nothing — a single
+// resolver's stale negative cache otherwise fails a record that's already live.
+async function dnsTxtVia(url: string, name: string): Promise<string[]> {
   try {
-    const r = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(name)}&type=TXT`, { headers: { accept: "application/dns-json" } });
+    const r = await fetch(`${url}?name=${encodeURIComponent(name)}&type=TXT`, { headers: { accept: "application/dns-json" } });
     const j = await r.json();
     return (j.Answer ?? []).map((a: { data?: string }) => String(a.data ?? "").replace(/^"|"$/g, "").replace(/"\s+"/g, ""));
   } catch { return []; }
+}
+async function dnsTxt(name: string): Promise<string[]> {
+  const google = await dnsTxtVia("https://dns.google/resolve", name);
+  if (google.length) return google;
+  return dnsTxtVia("https://cloudflare-dns.com/dns-query", name);
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
