@@ -41,7 +41,7 @@
 @keyframes agDrawerIn { from { transform: translateX(-100%); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ag-drawer, .ag-drawer-scrim { animation: none; } }
 .ag-drawer-head { display: flex; align-items: center; gap: 10px; padding: 4px 6px 14px; }
-.ag-drawer-logo { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; }
+.ag-drawer-logo { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; filter: grayscale(1); }
 .ag-drawer-brand { flex: 1; display: flex; flex-direction: column; font-weight: 750; font-size: var(--fs-body-s); line-height: 1.15; }
 .ag-drawer-brand span { font-weight: 500; font-size: var(--fs-label); color: var(--text-dim); margin-top: 2px; }
 .ag-drawer-x { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 4px; display: grid; place-items: center; }
@@ -203,7 +203,7 @@
 .ag-ce-av-mid svg { width: 30px; height: 30px; }
 .ag-ce-title { font-size: var(--fs-title); font-weight: 800; letter-spacing: -0.02em; }
 .ag-ce-sub { font-size: var(--fs-footnote); color: var(--text-dim); line-height: 1.55; margin: 8px auto 20px; }
-.ag-ce-cta { width: auto; padding-left: 22px; padding-right: 22px; margin: 0 auto; }
+.ag-ce-cta { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; padding: 14px 22px; margin: 0 auto; }
 
 .ag-stage {
   flex: 1;
@@ -250,10 +250,17 @@
 }
 .ag-foot { color: var(--text-dim); font-size: var(--fs-footnote); line-height: 1.5; margin: 18px 4px 0; text-align: center; }
 
+/* Every section change gets a soft settle-in instead of a hard swap. The tab
+   subtrees remount on switch, so a mount animation is exactly a tab transition. */
+@keyframes agTabIn { from { opacity: 0; transform: translateY(6px); } }
+.memg.ag .ag-compose, .memg.ag .ag-stage { animation: agTabIn 0.22s ease; }
+@media (prefers-reduced-motion: reduce) { .memg.ag .ag-compose, .memg.ag .ag-stage { animation: none; } }
+
 /* --- Email agent workspace --- */
+/* Centered card, matching the other tabs' empty states instead of hugging a corner. */
 .ag-connect {
-  display: flex; align-items: center; gap: 13px;
-  padding: 14px; margin-top: 10px;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+  padding: 24px 20px; margin: 40px auto 10px; max-width: 360px;
   border: 1px solid var(--brand); border-radius: var(--r-card);
   background: rgba(var(--brand-rgb), 0.08);
 }
@@ -449,9 +456,10 @@ button.ag-camp:active { filter: brightness(1.15); }
 .ag-em-search input { flex: 1; min-width: 0; background: none; border: none; color: var(--text); font: inherit; font-size: var(--fs-body-s); outline: none; }
 .ag-em-search input::placeholder { color: var(--text-faint); }
 .ag-em-clear { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 0; display: grid; place-items: center; }
-.ag-em-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+/* One even row whether a tab has 3 filters or 4 — no orphan wrapping. */
+.ag-em-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(126px, 1fr)); gap: 8px; margin-bottom: 8px; }
 /* Resend-style filter dropdowns (date range + status + API keys). */
-.ag-fm { position: relative; flex: 1 1 30%; min-width: 102px; }
+.ag-fm { position: relative; min-width: 0; }
 .ag-fm-trig { display: flex; align-items: center; gap: 7px; width: 100%; background: var(--glass); border: 1px solid var(--glass-edge); color: var(--text); font: inherit; font-size: var(--fs-caption); font-weight: 600; padding: 9px 11px; border-radius: var(--r-row, 12px); cursor: pointer; }
 .ag-fm-trig.open { border-color: rgba(248, 81, 78, 0.45); }
 .ag-fm-cur { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
