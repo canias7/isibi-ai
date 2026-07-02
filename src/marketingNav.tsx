@@ -36,8 +36,7 @@ export const SENDRA_TOOLS: { id: SendraNavId; name: string; desc: string; Icon: 
 ];
 
 // Wingup destinations, same ids as its internal views. Unused since the
-// screen stopped shipping (Studio's canvas is bare while its real contents
-// are designed) — kept with it.
+// screen stopped shipping — kept with it.
 export const SOCIAL_TOOLS: { id: SocialNavId; name: string; Icon: IconCmp }[] = [
   { id: 'landing', name: 'Home', Icon: IconHome },
   { id: 'gallery', name: 'Gallery', Icon: IconPhotos },

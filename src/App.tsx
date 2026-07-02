@@ -54,7 +54,7 @@ type View = 'home' | 'connectors' | 'settings';
 
 // The hub's living background (desktop only): the login page's atmosphere —
 // drifting wall of work + flying showcase cards — wrapped around the screen
-// edges, leaving the centre clear for the hub words.
+// edges, leaving the centre clear for the Marketing word.
 function HubScene() {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -164,9 +164,6 @@ export default function App() {
     void tap();
     setMktNav((p) => ({ area, id, n: p.n + 1 }));
   };
-  // Studio: Marketing's sibling overlay. Deliberately empty for now — its
-  // real contents are still to come (and won't be the old Wingup page).
-  const [stuOpen, setStuOpen] = useState(false);
   // Desktop-only hub scene gate: checked once at mount so phones never mount
   // (or download) the showcase videos.
   const [wideViewport] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches);
@@ -243,7 +240,6 @@ export default function App() {
   const confirmUi = useDismiss(confirmDelete);
   const signOutUi = useDismiss(confirmSignOut);
   const mktUi = useDismiss(mktOpen);
-  const stuUi = useDismiss(stuOpen);
   // Legal reader: latch the doc so the sheet doesn't blank out during its exit beat.
   const legalUi = useDismiss(!!legalDoc);
   const lastLegal = useRef(legalDoc);
@@ -557,7 +553,7 @@ export default function App() {
       ) : (
         <>
           {/* Pure-black hub: the .live-bg keeps its black backdrop but carries
-              no orbs here — the words ARE the interface. On desktop the login
+              no orbs here — the word IS the interface. On desktop the login
               page's living scene wraps the edges (mounted only on wide
               viewports so phones never load the videos). */}
           <div className="live-bg" aria-hidden="true" />
@@ -565,9 +561,6 @@ export default function App() {
           <div className="home agents-home">
             <button className="mkt-word" onClick={() => { void tap(); void loadConnectors(); setMktOpen(true); }}>
               Marketing
-            </button>
-            <button className="mkt-word" onClick={() => { void tap(); void loadConnectors(); setStuOpen(true); }}>
-              Studio
             </button>
             {brokenApps.length > 0 && !brokenDismissed && (
               <div className="conn-warn" role="status">
@@ -598,8 +591,8 @@ export default function App() {
             <div className="mkt-area">
               <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} navRequest={mktNav} active />
             </div>
-            {/* The Marketing sidebar (desktop) — the email engine's sections.
-                The creative side lives in its own Studio overlay below. */}
+            {/* One Marketing sidebar (desktop). Social (Wingup) retired —
+                Marketing is the email engine now. */}
             <nav className="mkt-side" aria-label="Marketing">
               <div className="mkt-side-brand">Marketing</div>
               <div className="mkt-side-scroll">
@@ -622,30 +615,6 @@ export default function App() {
             </ErrorBoundary>
           </div>
         </Suspense>
-      )}
-      {/* Studio: Marketing's sibling overlay, same stage/sidebar shell (the
-          mkt-* skin is shared). The canvas is intentionally bare — the page's
-          real contents are still to come — so the only chrome is a way back:
-          the sidebar's Close on desktop, a floating back arrow on mobile. */}
-      {stuUi.mounted && (
-        <div style={{ display: 'contents' }} className={stuUi.closing ? 'mkt-wrap gf-out' : 'mkt-wrap'}>
-          <div className="mkt-stage">
-          <div className="mkt-area">
-            <div className="memg stu-blank" role="region" aria-label="Studio">
-              <button className="icon-btn stu-back" onClick={() => { void tap(); setStuOpen(false); }} aria-label="Close Studio">
-                <IconArrowLeft size={22} />
-              </button>
-            </div>
-          </div>
-          <nav className="mkt-side" aria-label="Studio">
-            <div className="mkt-side-brand">Studio</div>
-            <div className="mkt-side-scroll" />
-            <button className="mkt-side-exit" onClick={() => { void tap(); setStuOpen(false); }}>
-              <IconArrowLeft size={16} /> Close
-            </button>
-          </nav>
-          </div>
-        </div>
       )}
     </div>
   </>);
