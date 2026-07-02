@@ -317,6 +317,23 @@
 .mkt-wrap .memg,
 .mkt-wrap .memg.ag { background: #000; }
 
+/* Marketing color pass: on the black canvas Sendra's orange→red gradient
+   reads muddy (worse at the disabled 0.45 opacity) and the Cc link's blue is
+   foreign. Primary actions go app-amber with dark ink; disabled becomes a
+   quiet neutral instead of a dimmed gradient; the link goes dim → amber. */
+.mkt-wrap .ag-send-btn {
+  background: linear-gradient(135deg, #f2b950, #e8952e);
+  color: #221703;
+}
+.mkt-wrap .ag-send-btn:disabled {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-dim);
+  opacity: 1;
+}
+.mkt-wrap .ag-send-btn.ghost { background: var(--glass); color: var(--text); }
+.mkt-wrap .ag-cc-toggle { color: var(--text-dim); transition: color 140ms ease; }
+.mkt-wrap .ag-cc-toggle:hover { color: #e8a93a; }
+
 /* The two engines' show/hide wrappers: no box of their own, and the hidden
    one is display:none so its fixed-position screen fully disappears. The
    screens' own entrance is off here — display:none → shown restarts CSS

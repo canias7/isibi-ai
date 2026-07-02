@@ -2811,8 +2811,9 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 })()}
                 {!showCc ? (
                   <button
+                    className="ag-cc-toggle"
                     onClick={() => { tap(); setShowCc(true); }}
-                    style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#3A86FF', padding: '2px', fontSize: 13, cursor: 'pointer' }}
+                    style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: '2px', fontSize: 13, cursor: 'pointer' }}
                   >Add Cc / Bcc</button>
                 ) : (
                   <>
