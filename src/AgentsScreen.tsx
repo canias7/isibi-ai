@@ -2097,7 +2097,11 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                       </>
                     )}
                     <div className="ag-dnr-list">
-                      {recs.map((r) => {
+                      {/* DMARC is optional for verification — dropped from the
+                          setup list to keep it to what's actually required.
+                          (Gmail/Yahoo require DMARC for 5k+/day bulk senders,
+                          so this likely returns when users hit that scale.) */}
+                      {recs.filter((r) => r.purpose !== 'DMARC').map((r) => {
                         const stt = recStatus(r.purpose);
                         const open = domRecOpen === r.purpose;
                         return (
