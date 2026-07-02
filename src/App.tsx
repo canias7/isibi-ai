@@ -603,7 +603,7 @@ export default function App() {
             <nav className="mkt-side" aria-label="Marketing">
               <div className="mkt-side-brand">Marketing</div>
               <div className="mkt-side-scroll">
-                <div className="mkt-side-grp"><img src={SENDRA_LOGO} alt="" aria-hidden /> Email &amp; SMS</div>
+                <div className="mkt-side-grp"><img src={SENDRA_LOGO} alt="" aria-hidden /> Email</div>
                 {SENDRA_TOOLS.map((t) => (
                   <button
                     key={t.id}

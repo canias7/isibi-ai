@@ -810,22 +810,6 @@ button.ag-dom { font: inherit; width: 100%; text-align: left; cursor: pointer; }
 .ag-dns-val button:active { filter: brightness(1.2); }
 .ag-dns-val button.ok { color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.12); }
 
-/* SMS: per-user Twilio "connected" row */
-.ag-sms-conn { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: var(--fs-footnote); font-weight: 600; color: #34d399; }
-.ag-sms-conn button { background: none; border: none; color: var(--brand); font: inherit; font-weight: 700; cursor: pointer; padding: 0; }
-.ag-sms-conn button.armed { color: #ff6b6b; }
-.ag-sms-conn button:disabled { opacity: 0.5; cursor: default; }
-.ag-num-search { display: flex; gap: 8px; align-items: stretch; }
-.ag-num-search .ag-field { flex: 1; }
-.ag-num-search .ag-send-btn { width: auto; flex-shrink: 0; padding: 12px 16px; }
-.ag-num-list { display: flex; flex-direction: column; gap: 8px; }
-.ag-num { display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: #16181d; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; }
-.ag-num-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.ag-num-tel { color: #fff; font-weight: 700; font-size: var(--fs-body-s); }
-.ag-num-loc { color: #9298a2; font-size: var(--fs-caption); }
-.ag-num-get { flex-shrink: 0; background: var(--grad-brand); color: var(--on-brand); border: none; font: inherit; font-weight: 700; font-size: var(--fs-footnote); padding: 8px 16px; border-radius: var(--r-pill); cursor: pointer; }
-.ag-num-get:disabled { opacity: 0.5; }
-
 /* Send-test composer (verified domain) */
 .ag-dom-test { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
 .ag-dom-test .ag-field { flex: 1; }

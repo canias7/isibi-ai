@@ -182,49 +182,6 @@ export async function tgSend(chatId: number | string, text: string): Promise<voi
   await tgInvoke('send', { chatId, text });
 }
 
-// ---- SMS (the platform's built-in Twilio sender, via the `sms` Edge Function) ----
-// App-level outcomes come back as 200 { error: code }; only infra errors are
-// non-2xx (retried once). `sendSms` throws Error(code) so callers can map a
-// friendly message (sms_unset / bad_number / rate_limited / send_failed / …).
-async function smsInvoke(action: string, extra: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const { data, error } = await supabase.functions.invoke('sms', { body: { action, ...extra } });
-    if (error) {
-      if (attempt === 0) { await new Promise((r) => setTimeout(r, 1200)); continue; }
-      throw new Error(error.message || 'Request failed');
-    }
-    const d = (data || {}) as Record<string, unknown>;
-    if (d.error) throw new Error(String(d.error));
-    return d;
-  }
-  throw new Error('Request failed');
-}
-// `failed` distinguishes a real "no number" from a transient status-fetch error,
-// so the UI doesn't show the purchase flow to someone who already owns a number.
-export async function smsStatus(): Promise<{ ready: boolean; number: string | null; failed?: boolean }> {
-  try { const d = await smsInvoke('status'); return { ready: !!d.ready, number: (d.number as string) || null }; }
-  catch { return { ready: false, number: null, failed: true }; }
-}
-export async function sendSms(to: string, body: string): Promise<{ sid?: string; remaining?: number }> {
-  const d = await smsInvoke('send', { to, body });
-  return { sid: d.sid as string | undefined, remaining: typeof d.remaining === 'number' ? d.remaining : undefined };
-}
-// Platform-provisioned Twilio (ISV): search / buy / release a number in-app.
-export interface SmsNumber { phoneNumber: string; locality?: string; region?: string }
-export async function searchSmsNumbers(areaCode?: string, country?: string): Promise<{ numbers: SmsNumber[]; error?: string }> {
-  try { const d = await smsInvoke('searchNumbers', { areaCode, country }); return { numbers: Array.isArray(d.numbers) ? d.numbers as SmsNumber[] : [] }; }
-  catch (e) { return { numbers: [], error: (e as Error)?.message || 'failed' }; }
-}
-export async function buySmsNumber(phoneNumber: string): Promise<{ ok?: boolean; number?: string; error?: string }> {
-  try { const d = await smsInvoke('buyNumber', { phoneNumber }); return { ok: !!d.ok, number: d.number as string | undefined }; }
-  catch (e) { return { error: (e as Error)?.message || 'failed' }; }
-}
-// Throws on failure so the caller can keep the number visible instead of
-// dropping the user into the purchase flow while the old number still bills.
-export async function releaseSmsNumber(): Promise<void> {
-  await smsInvoke('release');
-}
-
 // ---- Email campaigns (sent through the user's mailbox, via the `campaigns` fn) ----
 // create -> then call sendCampaignBatch(id) repeatedly until { done:true }. App
 // outcomes (no_recipients / missing_content) come back as 200 { error }.
