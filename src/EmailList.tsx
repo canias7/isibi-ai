@@ -126,7 +126,7 @@ function Avatar({ from, email }: { from?: string; email?: string }) {
   );
 }
 
-export function EmailList({ items, onOpen, badges }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void; badges?: boolean }) {
+export function EmailList({ items, onOpen, badges, selectedId }: { items: EmailItem[]; onOpen?: (it: EmailItem) => void; badges?: boolean; selectedId?: string }) {
   const app = providerOf(items[0]?.app, items[0]?.id);
   for (const it of items) {
     if (it.id) rememberHint(it.id, { from: it.from, email: it.email, subject: it.subject, time: it.time, unread: it.unread, app: it.app, draft: it.draft });
@@ -138,7 +138,7 @@ export function EmailList({ items, onOpen, badges }: { items: EmailItem[]; onOpe
         return (
         <div
           key={i}
-          className={`gf-email gf-p-${prov} ${it.unread ? 'unread' : ''}${onOpen ? ' tappable' : ''}`}
+          className={`gf-email gf-p-${prov} ${it.unread ? 'unread' : ''}${onOpen ? ' tappable' : ''}${selectedId && it.id === selectedId ? ' sel' : ''}`}
           onClick={onOpen ? () => onOpen(it) : undefined}
           role={onOpen ? 'button' : undefined}
           tabIndex={onOpen ? 0 : undefined}
