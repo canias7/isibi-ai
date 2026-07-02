@@ -117,6 +117,23 @@
   }
   .ag-split-read .gf-body-frame { border-radius: 16px; }
 
+  /* Quiet reply/forward chips above the open mail. */
+  .ag-reader-topbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
+  .ag-chip-btn {
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-size: var(--fs-body-s);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease;
+  }
+  .ag-chip-btn:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.24); }
+  .ag-chip-btn:active { transform: scale(0.97); }
+
   /* Split list: flat client rows instead of the mobile bubble cards — no
      numbers, no per-row card chrome, quiet hover, amber marker on the open
      mail. (Out-specifies .ag-inbox .gf-email.gf-p-* backgrounds.) */
