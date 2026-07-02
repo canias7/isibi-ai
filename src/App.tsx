@@ -547,7 +547,7 @@ export default function App() {
           the exit beat — no box of its own, so layout is untouched. */}
       {mktUi.mounted && (
         <Suspense fallback={<RouteFallback />}>
-          <div style={{ display: 'contents' }} className={mktUi.closing ? 'gf-out' : undefined}>
+          <div style={{ display: 'contents' }} className={mktUi.closing ? 'mkt-wrap gf-out' : 'mkt-wrap'}>
             <ErrorBoundary fallback={(reset) => <OverlayCrash onClose={() => { reset(); setMktOpen(false); }} />}>
             {mktTab === 'email'
               ? <AgentsScreen connApps={connApps} onClose={() => setMktOpen(false)} />
