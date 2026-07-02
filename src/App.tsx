@@ -128,10 +128,26 @@ export default function App() {
       if (active) setAuthReady(true);
     })();
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
+      if (s) {
+        // Keep object identity when the token didn't change: the client
+        // re-emits SIGNED_IN on every tab focus, and a fresh object would
+        // re-render the whole signed-in tree for nothing.
+        setSession((prev) => (prev && prev.access_token === s.access_token ? prev : s));
+        return;
+      }
+      // A null here is either a real sign-out or a transient blip while the
+      // client refreshes an expired token on tab focus. Dropping straight to
+      // <Login /> unmounts and remounts the entire app (hub replays its
+      // entrance, the Marketing page reloads) — so re-check in a beat and
+      // only tear down when the session is really gone.
+      window.setTimeout(() => {
+        void supabase.auth.getSession().then(({ data }) => {
+          if (active && !data.session) setSession(null);
+        });
+      }, 400);
       // Login is deactivated: if the session ever goes away (sign-out/expiry),
       // silently re-establish a guest one instead of showing a login wall.
-      if (!s && !REQUIRE_LOGIN) supabase.auth.signInAnonymously().catch(() => {});
+      if (!REQUIRE_LOGIN) supabase.auth.signInAnonymously().catch(() => {});
     });
     return () => {
       active = false;
