@@ -269,11 +269,11 @@ input, textarea { caret-color: var(--brand); }
 .home-continue:active { color: var(--text); }
 .home-continue:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--r-control); }
 
-/* ---- Agent hub home: black screen, the words ----------------------------- */
+/* ---- Agent hub home: black screen, one word ------------------------------ */
 /* The identity lockup wrapper (orb above the heading). */
 .home-hero { display: flex; flex-direction: column; align-items: center; }
-/* The words ARE the interface: white "Marketing" / "Studio" on pure black.
-   Quietly dimmed at rest; fully alight (with a soft halo) on hover/press. */
+/* The word IS the interface: white "Marketing" on pure black. Quietly dimmed
+   at rest; comes fully alight (with a soft halo) on hover/press. */
 .mkt-word {
   background: none;
   border: none;
@@ -290,10 +290,10 @@ input, textarea { caret-color: var(--brand); }
 .mkt-word:hover { opacity: 1; text-shadow: 0 0 60px rgba(255, 255, 255, 0.35); }
 .mkt-word:active { transform: scale(0.98); }
 .mkt-word:focus-visible { outline: 2px solid var(--brand); outline-offset: 6px; border-radius: var(--r-control); }
-/* Desktop: the words carry the whole screen — let them be monumental.
+/* Desktop: the single word carries the whole screen — let it be monumental.
    The login page's living scene (.hub-scene, built from the shared lp-*
    pieces in auth.css) wraps the edges; the centre stays a clear dark void
-   so the words own it. */
+   so the word owns it. */
 @media (min-width: 900px) {
   .mkt-word { font-size: 6.5rem; letter-spacing: -0.04em; position: relative; z-index: 2; }
 

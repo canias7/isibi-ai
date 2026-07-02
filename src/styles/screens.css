@@ -253,9 +253,9 @@
 .conn-btn.on { background: var(--brand); color: #000; border-color: var(--brand); }
 .conn-btn.danger { background: var(--danger-solid); color: #fff; border-color: var(--danger-solid); }
 
-/* The stage carries the one enter/exit beat for a whole hub page — Marketing
-   or Studio (screens + sidebar together). It never re-hides while open, so
-   the entrance can't replay on area flips. */
+/* The stage carries the one enter/exit beat for the whole Marketing page
+   (screens + sidebar together). It never re-hides while open, so the
+   entrance can't replay on area flips. */
 .mkt-stage {
   position: fixed;
   inset: 0;
@@ -344,18 +344,9 @@
 .mkt-wrap .mkt-area .memg,
 .gf-out .mkt-wrap .mkt-area .memg { animation: none; }
 
-/* ---- Studio: a bare black canvas while its real contents are designed ----
-   The .memg shell gives it the fixed footprint and (via .mkt-wrap) the pure
-   black; the only chrome is a way back — this floating arrow on mobile, the
-   sidebar's Close from 1024px. */
-.stu-blank { align-items: flex-start; }
-.stu-back { margin: calc(env(safe-area-inset-top) + 10px) 0 0 12px; }
-@media (min-width: 1024px) { .stu-back { display: none; } }
-
-/* ---- The hub-page sidebar (desktop) ----
-   One skin, worn by both overlays: Marketing (Sendra's sections) and Studio
-   (bare until its contents land). Mobile keeps the per-app chrome — Sendra's
-   drawer; from 1024px this column replaces it. */
+/* ---- The one Marketing sidebar (desktop) ----
+   Sendra's sections in a single nav. Mobile keeps the per-app chrome —
+   Sendra's drawer; from 1024px this column replaces it. */
 .mkt-side { display: none; }
 .gf-out .mkt-side { opacity: 0; transition: opacity var(--dur-exit) ease; }
 @media (min-width: 1024px) {
