@@ -2492,9 +2492,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
               })() : (
               <div className="ag-compose">
                 {msgBusy && msgList.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>Loading…</div>
+                  <EmailSkeleton />
                 ) : msgList.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>No emails sent yet. Individual emails you send — from the composer or the API — show up here with their delivery status.</div>
+                  <div className="ag-dom-empty">
+                    <div className="ag-dom-empty-ic"><IconArrowUp size={30} /></div>
+                    <div className="ag-dom-empty-ttl">No emails yet</div>
+                    <p className="ag-ce-sub">Individual emails you send — from the composer or the API — land here with their delivery status.</p>
+                  </div>
                 ) : (() => {
                   const q = msgSearch.trim().toLowerCase();
                   const _mr = MSG_RANGE_OPTS.find((r) => r.id === msgRange) || MSG_RANGE_OPTS[4];
@@ -2545,7 +2549,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     </>
                   );
                 })()}
-                <p className="ag-foot">{msgList.length >= 100 ? 'Your 100 most recent individual emails' : 'Every individual email you’ve sent'} through Sendra — from the composer or the API — and where it landed. Campaign sends live under Logs.</p>
+                {msgList.length > 0 && <p className="ag-foot">{msgList.length >= 100 ? 'Your 100 most recent individual emails' : 'Every individual email you’ve sent'} through Sendra — from the composer or the API — and where it landed. Campaign sends live under Logs.</p>}
               </div>
               )
             ) : sendraTab === 'logs' ? (
@@ -2592,9 +2596,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         <FilterMenu value={logApiKey} options={MSG_APIKEY_OPTS} onChange={setLogApiKey} align="right" hint="API keys coming soon" />
                       </div>
                       {logsBusy && !hasAny ? (
-                        <div className="ag-empty" style={{ marginTop: 8 }}>Loading…</div>
+                        <EmailSkeleton />
                       ) : !hasAny ? (
-                        <div className="ag-empty" style={{ marginTop: 8 }}>No requests yet. Sends through Sendra — campaigns and individual emails — show up here as they happen.</div>
+                        <div className="ag-dom-empty">
+                          <div className="ag-dom-empty-ic"><IconClock size={30} /></div>
+                          <div className="ag-dom-empty-ttl">No requests yet</div>
+                          <p className="ag-ce-sub">Campaign sends and individual emails show up here as they happen.</p>
+                        </div>
                       ) : filtered.length === 0 ? (
                         <div className="ag-empty" style={{ marginTop: 8 }}>No logs match.</div>
                       ) : (
@@ -2616,7 +2624,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     </>
                   );
                 })()}
-                <p className="ag-foot">{msgList.length >= 100 || campList.length >= 50 ? 'Your most recent requests' : 'Every request Sendra processed'} — campaign sends (/campaigns) and individual emails (/emails) — with its status. Filter by source to see one or the other.</p>
+                {msgList.length + campList.length > 0 && <p className="ag-foot">{msgList.length >= 100 || campList.length >= 50 ? 'Your most recent requests' : 'Every request Sendra processed'} — campaign sends (/campaigns) and individual emails (/emails) — with its status. Filter by source to see one or the other.</p>}
               </div>
             ) : sendraTab === 'deliver' ? (
               <div className="ag-compose">
@@ -2661,7 +2669,12 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     <p className="ag-foot">Your delivery and bounce/complaint rates across every campaign email you’ve sent. (Opens and clicks show per-campaign under each campaign’s stats.)</p>
                   </>
                 ) : (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>No sends yet. Send a campaign and your delivery, opens, clicks and bounce rates show up here.</div>
+                  <div className="ag-dom-empty">
+                    <div className="ag-dom-empty-ic"><IconChart size={30} /></div>
+                    <div className="ag-dom-empty-ttl">No sends yet</div>
+                    <p className="ag-ce-sub">Send a campaign and your delivery, opens, clicks and bounce rates show up here.</p>
+                    <button className="ag-send-btn ag-ce-cta" onClick={() => navTo('campaigns')}><IconPlus size={16} /> Create a campaign</button>
+                  </div>
                 )}
               </div>
             ) : sendraTab === 'webhook' ? (
@@ -2846,7 +2859,12 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
               (() => {
                 const scheduled = campList.filter((c) => c.status === 'scheduled');
                 return scheduled.length === 0 ? (
-                  <div className="ag-empty" style={{ marginTop: 12 }}>Nothing scheduled yet. Create a campaign and choose <b>Schedule</b> to line one up — it’ll send automatically.</div>
+                  <div className="ag-dom-empty">
+                    <div className="ag-dom-empty-ic"><IconCalendar size={30} /></div>
+                    <div className="ag-dom-empty-ttl">Nothing scheduled</div>
+                    <p className="ag-ce-sub">Create a campaign and pick Schedule — it sends itself at the right moment.</p>
+                    <button className="ag-send-btn ag-ce-cta" onClick={() => navTo('campaigns')}><IconPlus size={16} /> Schedule a campaign</button>
+                  </div>
                 ) : (
                   <div className="ag-camp-list">
                     {scheduled.map((c) => (
