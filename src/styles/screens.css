@@ -317,13 +317,12 @@
 .mkt-wrap .memg,
 .mkt-wrap .memg.ag { background: #000; }
 
-/* Marketing color pass: on the black canvas Sendra's orange→red gradient
-   reads muddy (worse at the disabled 0.45 opacity) and the Cc link's blue is
-   foreign. Primary actions go app-amber with dark ink; disabled becomes a
-   quiet neutral instead of a dimmed gradient; the link goes dim → amber. */
+/* Marketing is strictly two colors: black canvas, white accent (Wingup's
+   palette, now app-wide here). Primary actions are white with near-black
+   ink; disabled is a quiet neutral; the Cc link is dim grey → white. */
 .mkt-wrap .ag-send-btn {
-  background: linear-gradient(135deg, #f2b950, #e8952e);
-  color: #221703;
+  background: linear-gradient(135deg, #f4f5f7, #ffffff);
+  color: #0a0a0b;
 }
 .mkt-wrap .ag-send-btn:disabled {
   background: rgba(255, 255, 255, 0.07);
@@ -332,7 +331,7 @@
 }
 .mkt-wrap .ag-send-btn.ghost { background: var(--glass); color: var(--text); }
 .mkt-wrap .ag-cc-toggle { color: var(--text-dim); transition: color 140ms ease; }
-.mkt-wrap .ag-cc-toggle:hover { color: #e8a93a; }
+.mkt-wrap .ag-cc-toggle:hover { color: #fff; }
 
 /* The two engines' show/hide wrappers: no box of their own, and the hidden
    one is display:none so its fixed-position screen fully disappears. The
