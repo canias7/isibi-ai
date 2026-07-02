@@ -29,6 +29,7 @@ type CommsId = 'gmail' | 'm365' | 'telegram';
 // Sendra home tabs + their header copy.
 const SENDRA_META: Record<SendraTab, { t: string; s: string }> = {
   campaigns: { t: 'Campaigns', s: 'Email to your lists' },
+  subscriptions: { t: 'Subscriptions', s: 'Who you can email' },
   templates: { t: 'Templates', s: 'Reusable messages' },
   domains: { t: 'Domains', s: 'Send from your own address' },
   schedule: { t: 'Schedule', s: 'Scheduled sends & reminders' },
@@ -417,7 +418,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [delivBusy, setDelivBusy] = useState(false);
   const [delivErr, setDelivErr] = useState(false);
   // Campaign views + the campaign "From" picker
-  const [campView, setCampView] = useState<'list' | 'suppressions' | 'stats'>('list');
+  const [campView, setCampView] = useState<'list' | 'stats'>('list');
   const [campStats, setCampStats] = useState<{ campaign: Campaign; stats: CampaignStats; ab?: { a: { sent: number; opened: number; clicked: number }; b: { sent: number; opened: number; clicked: number } } | null } | null>(null);
   const [campStatsBusy, setCampStatsBusy] = useState(false);
   const [campStatsErr, setCampStatsErr] = useState(false); // stats fetch failed → don't present zeros as real
@@ -766,6 +767,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     if (sendraTab === 'logs') loadRequestLogs();
     if (sendraTab === 'emails') { setMsgBusy(true); mailerMessages().then((m) => { if (mountedRef.current) { setMsgList(m); setMsgBusy(false); } }).catch(() => { if (mountedRef.current) setMsgBusy(false); }); }
     if (sendraTab === 'deliver') loadDeliver();
+    if (sendraTab === 'subscriptions') loadSuppressions();
     // Verified domains feed the composer's "Send from" picker; the Domains tab needs the full list.
     if (sendraTab === 'campaigns' || sendraTab === 'domains' || sendraTab === 'automations') mailerListDomains().then((d) => { if (mountedRef.current) setDomains(d); });
     if (sendraTab === 'automations') loadAutomations();
@@ -2023,27 +2025,6 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     <p className="ag-foot">{campDomain ? `Sends from ${(campFromLocal.trim() || 'news')}@${campDomain} (your verified domain)` : `Sends from your ${campApp === 'outlook' ? 'Outlook' : 'Gmail'}`}, about one per second, each with a one-tap unsubscribe. Unsubscribed addresses are skipped automatically.</p>
                   </div>
                 )
-              ) : campView === 'suppressions' ? (
-                <div className="ag-compose">
-                  <div className="ag-dom-head">
-                    <button className="ag-back-link" onClick={() => { tap(); setCampView('list'); }}>‹ Campaigns</button>
-                    <span className="ag-dom-title">Suppressed contacts</span>
-                  </div>
-                  <p className="ag-foot ag-dom-hint">People who unsubscribed, bounced, or complained. They're skipped automatically on every campaign — remove someone to allow sending to them again.</p>
-                  {supList.length === 0 ? (
-                    <div className="ag-empty" style={{ marginTop: 12 }}>No suppressed contacts yet.</div>
-                  ) : (
-                    <div className="ag-sup-list">
-                      {supList.map((s) => (
-                        <div className="ag-sup" key={s.email}>
-                          <span className="ag-sup-email">{s.email}</span>
-                          <span className={`ag-badge${s.reason === 'complaint' ? ' is-bad' : s.reason === 'bounce' ? ' is-wait' : ''}`}><i className="ag-dot" />{s.reason}</span>
-                          <button className="ag-sup-x" onClick={() => removeSup(s.email)}>Remove</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               ) : campView === 'stats' && campStats ? (
                 <div className="ag-compose">
                   <div className="ag-dom-head">
@@ -2120,12 +2101,12 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                       <div className="ag-dom-empty-ttl">No campaigns yet</div>
                       <p className="ag-ce-sub">Write once and send to your whole list — straight from your mailbox.</p>
                       <button className="ag-send-btn" onClick={openCampNew}><IconPlus size={16} /> New email campaign</button>
-                      <button className="ag-back-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
+                      <button className="ag-back-link" onClick={() => navTo('subscriptions')}>Unsubscribes &amp; bounces ›</button>
                     </div>
                   ) : (
                     <>
                     <button className="ag-send-btn" onClick={openCampNew}>+ New email campaign</button>
-                    <button className="ag-send-btn ghost ag-dom-link" onClick={() => { tap(); setCampView('suppressions'); loadSuppressions(); }}>Suppressed contacts{supList.length ? ` · ${supList.length}` : ''}</button>
+                    <button className="ag-send-btn ghost ag-dom-link" onClick={() => navTo('subscriptions')}>Unsubscribes &amp; bounces ›</button>
                     <div className="ag-camp-list">
                       {campList.map((c) => {
                         // A campaign left mid-send (tab closed, error) can be resumed
@@ -2300,6 +2281,54 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                   )}
                 </>
               )
+            ) : sendraTab === 'subscriptions' ? (
+              <div className="ag-compose">
+                {supList.length === 0 ? (
+                  <div className="ag-dom-empty">
+                    <div className="ag-dom-empty-ic"><IconCheck size={30} /></div>
+                    <div className="ag-dom-empty-ttl">Everyone’s subscribed</div>
+                    <p className="ag-ce-sub">When someone unsubscribes, bounces, or complains they land here — and every campaign skips them automatically.</p>
+                  </div>
+                ) : (
+                  <>
+                    {(() => {
+                      const n = (m: (r: string) => boolean) => supList.filter((s) => m((s.reason || '').toLowerCase())).length;
+                      const unsubs = n((r) => r.includes('unsub'));
+                      const bounces = n((r) => r.includes('bounce'));
+                      const complaints = n((r) => r.includes('complain'));
+                      const other = supList.length - unsubs - bounces - complaints;
+                      const pct = (v: number) => `${Math.round((v / supList.length) * 100)}%`;
+                      const cards = [
+                        { k: 'Unsubscribed', v: unsubs },
+                        { k: 'Bounced', v: bounces },
+                        { k: 'Complained', v: complaints },
+                        ...(other > 0 ? [{ k: 'Other', v: other }] : []),
+                      ];
+                      return (
+                        <div className="ag-stat-grid">
+                          {cards.map((c) => (
+                            <div className="ag-stat-card" key={c.k}>
+                              <div className="ag-stat-v">{c.v}</div>
+                              <div className="ag-stat-k">{c.k}</div>
+                              <div className="ag-stat-sub">{c.v ? pct(c.v) : '—'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    <div className="ag-sup-list">
+                      {supList.map((s) => (
+                        <div className="ag-sup" key={s.email}>
+                          <span className="ag-sup-email">{s.email}</span>
+                          <span className={`ag-badge${s.reason === 'complaint' ? ' is-bad' : s.reason === 'bounce' ? ' is-wait' : ''}`}><i className="ag-dot" />{s.reason}</span>
+                          <button className="ag-sup-x" onClick={() => removeSup(s.email)}>Re-allow</button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="ag-foot">Everyone here is skipped on every campaign, automatically. Re-allow someone only if they asked to hear from you again.</p>
+                  </>
+                )}
+              </div>
             ) : sendraTab === 'domains' ? (
               (() => { const sel = domOpen ? domains.find((x) => x.domain === domOpen) : null; return sel; })() ? (() => {
                 const d = domains.find((x) => x.domain === domOpen)!;
