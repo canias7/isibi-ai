@@ -478,8 +478,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const [testMsg, setTestMsg] = useState<Record<string, string>>({}); // per-domain test result
   const [domRmArm, setDomRmArm] = useState('');   // Remove armed for this domain — second tap actually removes
   const domRmTimerRef = useRef<number | null>(null); // disarms Remove after a few seconds
-  const [domVerErr, setDomVerErr] = useState('');    // verify feedback for the open domain
-  const [domRecsErr, setDomRecsErr] = useState(false); // records fetch failed for the open domain
+  // Feedback is TAGGED with its domain — an in-flight verify for domain A must
+  // not paint its message onto domain B's page after the user navigates.
+  const [domVerErr, setDomVerErr] = useState<{ domain: string; msg: string } | null>(null);
+  const [domRecsErr, setDomRecsErr] = useState(''); // domain whose records fetch failed
+  const [domsLoaded, setDomsLoaded] = useState(false); // first domain-list fetch settled
+  const [domsErr, setDomsErr] = useState(false);       // ...and whether it failed
+  const domRemovedRef = useRef(new Set<string>()); // domains removed this session — late async results for them are dropped
   // Templates (reusable, AI-writable, or bring-your-own)
   const [tplList, setTplList] = useState<Template[]>([]);
   const [tplEdit, setTplEdit] = useState<null | { id?: string }>(null);
@@ -507,7 +512,16 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   const trapRef = useRef<HTMLDivElement>(null);
   const chatThreadRef = useRef<HTMLDivElement>(null);       // AI builder thread — auto-scrolls to newest render
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  // Set the flag in the SETUP body too: StrictMode (dev) runs setup → cleanup →
+  // setup, and a cleanup-only effect would leave the ref permanently false —
+  // silently dropping every guarded async update for the component's whole life.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (domRmTimerRef.current) { clearTimeout(domRmTimerRef.current); domRmTimerRef.current = null; }
+    };
+  }, []);
   const builderGenRef = useRef(0); // bumped on every AI-builder session change; an in-flight job whose gen no longer matches is dropped (never applied/saved to the wrong template)
 
   // Restore an unsaved builder draft on open (survives app close, Lovable-style).
@@ -722,6 +736,13 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // (No background auto-verify: it only refetched the stored flag, which can't
   // change without a real DNS re-check. Returns with Domain Connect one-click,
   // where the provider callback makes polling meaningful.)
+
+  // If the open domain drops out of the list (removed elsewhere / stale link),
+  // close the detail — otherwise back/Esc eats a dead press and a later list
+  // refresh spontaneously reopens the page.
+  useEffect(() => {
+    if (domsLoaded && domOpen && !domains.some((d) => d.domain === domOpen)) setDomOpen(null);
+  }, [domsLoaded, domOpen, domains]);
 
   // Keep the AI builder pinned to its newest message / rendered email.
   useEffect(() => { const el = chatThreadRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chatMsgs, tplBody, chatBusy]);
@@ -1151,22 +1172,34 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // Add the domain (we generate its DKIM + return the records to publish), then
   // Verify re-checks DNS. Once verified it shows up under the composer's "Send from"
   // and can send a test. Private keys never leave the server.
-  const loadDomains = () => mailerListDomains().then((d) => { if (mountedRef.current) setDomains(d); });
+  const loadDomains = () => mailerListDomains()
+    .then((d) => { if (mountedRef.current) { setDomains(d); setDomsLoaded(true); setDomsErr(false); } })
+    .catch(() => { if (mountedRef.current) { setDomsLoaded(true); setDomsErr(true); } });
   // Silent Domain Connect discovery — populates dcInfo so the UI can show whether
   // the domain's DNS host supports one-click setup (doesn't open anything).
   const runDiscovery = async (domain: string, records: DnsRecord[]) => {
     try { const info = await discoverDomainConnect(domain, records); if (mountedRef.current) setDcInfo((m) => ({ ...m, [domain]: info })); } catch { /* ignore */ }
   };
   const addDomain = async () => {
+    if (domBusy) return;
     const d = domNew.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
-    if (!d || domBusy) return;
+    if (!d) { if (domNew.trim()) setDomErr('Enter a domain like yourbrand.com'); return; }
     tap(); setDomBusy(true); setDomErr('');
     try {
       const r = await mailerAddDomain(d);
       if (!mountedRef.current) return;
+      domRemovedRef.current.delete(r.domain);
       setDomRecords((m) => ({ ...m, [r.domain]: r.records }));
+      // Fresh page, fresh feedback — same reset openDom does, so a previous
+      // domain's verify error can't render on the brand-new one.
+      setTestMsg((m) => { const n = { ...m }; delete n[r.domain]; return n; });
+      setDomChecks((m) => { const n = { ...m }; delete n[r.domain]; return n; });
+      setDomVerErr(null); setDomRecsErr(''); setDomRmArm('');
       setDomNew(''); setDomOpen(r.domain);
-      await loadDomains();
+      // Show the new domain immediately; the authoritative refresh runs in the
+      // background so its failure can't misreport a successful add as an error.
+      setDomains((ds) => [{ domain: r.domain, verified: false, created_at: new Date().toISOString() }, ...ds.filter((x) => x.domain !== r.domain)]);
+      loadDomains();
       runDiscovery(r.domain, r.records);
     } catch (e) { if (mountedRef.current) setDomErr(e instanceof Error ? e.message : 'Couldn’t add the domain — try again.'); }
     finally { if (mountedRef.current) setDomBusy(false); }
@@ -1179,42 +1212,51 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
     // previous visit reads as current state and misleads (a long-fixed error
     // kept a user chasing a ghost).
     setTestMsg((m) => (m[domain] ? { ...m, [domain]: '' } : m));
-    setDomVerErr(''); setDomRecsErr(false); setDomRmArm('');
+    setDomVerErr(null); setDomRecsErr(''); setDomRmArm('');
     if (domRecords[domain]) { if (!dcInfo[domain]) runDiscovery(domain, domRecords[domain]); return; }
     try {
       const r = await mailerDomainRecords(domain);
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || domRemovedRef.current.has(domain)) return;
       setDomRecords((m) => ({ ...m, [domain]: r.records }));
       runDiscovery(domain, r.records);
-    } catch { if (mountedRef.current) setDomRecsErr(true); }
+    } catch { if (mountedRef.current && !domRemovedRef.current.has(domain)) setDomRecsErr(domain); }
   };
   const verifyDom = async (domain: string) => {
-    tap(); setDomVerifying(domain); setDomVerErr('');
+    if (domVerifying === domain) return;
+    tap(); setDomVerifying(domain); setDomVerErr(null);
     try {
       const r = await mailerVerifyDomain(domain);
-      if (!mountedRef.current) return;
+      // A removed domain's late verify result must not resurrect its caches —
+      // a re-add would then show green chips for the old, deleted key.
+      if (!mountedRef.current || domRemovedRef.current.has(domain)) return;
       setDomChecks((m) => ({ ...m, [domain]: r.checks }));
       setDomains((ds) => ds.map((d) => d.domain === domain ? { ...d, verified: r.verified } : d));
       if (!r.verified) {
-        const missing = !r.checks.dkim && !r.checks.spf ? 'DKIM and SPF records aren’t' : !r.checks.dkim ? 'the DKIM record isn’t' : 'the SPF record isn’t';
-        setDomVerErr(`Not verified yet — ${missing} visible in DNS. Records can take a few minutes to propagate; try again shortly.`);
+        const msg = r.lookup_failed
+          ? 'Couldn’t reach DNS to check just now — try again in a moment.'
+          : r.checks.spf_multiple
+            ? 'There’s more than one SPF (v=spf1) record on the domain — that breaks SPF entirely. Merge them into a single record.'
+            : `Not verified yet — ${!r.checks.dkim && !r.checks.spf ? 'DKIM and SPF records aren’t' : !r.checks.dkim ? 'the DKIM record isn’t' : 'the SPF record isn’t'} visible in DNS. Records can take a few minutes to propagate; try again shortly.`;
+        setDomVerErr({ domain, msg });
       }
-      await loadDomains();
-    } catch (e) { if (mountedRef.current) setDomVerErr(e instanceof Error ? e.message : 'Couldn’t check DNS — try again.'); }
-    finally { if (mountedRef.current) setDomVerifying(''); }
+      loadDomains();
+    } catch (e) { if (mountedRef.current) setDomVerErr({ domain, msg: e instanceof Error ? e.message : 'Couldn’t check DNS — try again.' }); }
+    finally { if (mountedRef.current) setDomVerifying((v) => (v === domain ? '' : v)); }
   };
   const removeDom = async (domain: string) => {
     try {
       await mailerRemoveDomain(domain);
       if (!mountedRef.current) return;
+      domRemovedRef.current.add(domain);
       if (campDomain === domain) setCampDomain('');
-      if (domOpen === domain) setDomOpen(null);
+      if (autoDomain === domain) setAutoDomain('');
+      setDomOpen((cur) => (cur === domain ? null : cur));
       // Drop everything cached for it — a re-add generates a NEW DKIM key, so
       // stale checks/records would show green chips for a key that's gone.
       const drop = <T,>(m: Record<string, T>) => { const n = { ...m }; delete n[domain]; return n; };
       setDomChecks(drop); setTestMsg(drop); setDcInfo(drop); setDomRecords(drop);
-      await loadDomains();
-    } catch (e) { if (mountedRef.current) setDomVerErr(e instanceof Error ? e.message : 'Couldn’t remove the domain — try again.'); }
+      loadDomains();
+    } catch (e) { if (mountedRef.current) setDomVerErr({ domain, msg: e instanceof Error ? e.message : 'Couldn’t remove the domain — try again.' }); }
   };
   // Remove is destructive (deletes the DKIM signing key): first tap arms the
   // button, the second within a few seconds actually removes.
@@ -1234,27 +1276,30 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
   // one-click apply URL. Until then it just reports whether one-click is available.
   const autoConfigure = async (domain: string) => {
     const recs = domRecords[domain];
-    if (!recs || dcBusy) return;
+    if (!recs || dcBusy === domain) return;
     tap(); setDcBusy(domain);
     try {
       const info = await discoverDomainConnect(domain, recs);
       if (!mountedRef.current) return;
       setDcInfo((m) => ({ ...m, [domain]: info }));
       if (info.applyUrl) window.open(info.applyUrl, '_blank', 'noopener');
-    } catch { /* ignore */ }
-    finally { if (mountedRef.current) setDcBusy(''); }
+    } catch {
+      // A network failure is NOT "your host doesn't support this" — say so.
+      if (mountedRef.current) setDcInfo((m) => ({ ...m, [domain]: { supported: false, failed: true } }));
+    }
+    finally { if (mountedRef.current) setDcBusy((v) => (v === domain ? '' : v)); }
   };
   // Send a quick test from a verified domain to confirm delivery end-to-end.
   const sendTest = async (domain: string) => {
     const to = (testTo[domain] || '').trim();
-    if (!to || testBusy) return;
+    if (!to || testBusy === domain) return;
     tap(); setTestBusy(domain); setTestMsg((m) => ({ ...m, [domain]: '' }));
     try {
       const r = await mailerSend({ from: `no-reply@${domain}`, to, subject: `Test from ${domain}`, text: `This is a test email sent from ${domain} via Go Farther.`, html: `<p>This is a test email sent from <b>${domain}</b> via Go Farther.</p>` });
       if (!mountedRef.current) return;
-      setTestMsg((m) => ({ ...m, [domain]: r.id ? `Sent ✓ (id ${r.id})` : 'Sent ✓' }));
+      setTestMsg((m) => ({ ...m, [domain]: `Sent ✓${r.id ? ` (id ${r.id})` : ''} — delivery status lands in Logs` }));
     } catch (e) { if (mountedRef.current) setTestMsg((m) => ({ ...m, [domain]: e instanceof Error ? e.message : 'Couldn’t send — try again.' })); }
-    finally { if (mountedRef.current) setTestBusy(''); }
+    finally { if (mountedRef.current) setTestBusy((v) => (v === domain ? '' : v)); }
   };
 
   const loadSuppressions = () => listSuppressions().then((s) => { if (mountedRef.current) setSupList(s); });
@@ -2121,7 +2166,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                 };
                 return (
                   <div className="ag-compose">
-                    <button className="ag-back-link ag-back-arrow" onClick={() => { tap(); setDomOpen(null); }}><IconArrowLeft size={15} /> All domains</button>
+                    <button className="ag-back-link ag-back-arrow" onClick={() => { tap(); setDomOpen(null); }}><span className="ag-back-arrow-in"><IconArrowLeft size={15} /> All domains</span></button>
                     <div className="ag-emd-hd">
                       <span className="ag-em-ava ag-emd-ava"><IconGlobe size={20} /></span>
                       <span className="ag-emd-hd-meta"><span className="ag-emd-hd-lbl">Domain</span><span className="ag-emd-hd-to">{d.domain}</span></span>
@@ -2141,10 +2186,11 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                     {!verified && (
                       <>
                         <button className="ag-send-btn ag-dom-auto" disabled={dcBusy === d.domain || !recs.length} onClick={() => autoConfigure(d.domain)}>{dcBusy === d.domain ? 'Checking…' : '⚡ Auto-configure (one-click)'}</button>
-                        {dc && <div className={`ag-dom-testmsg${dc.supported ? ' ok' : ''}`}>{dc.applyUrl ? `Opening ${dc.host} to authorize…` : dc.supported ? `✓ ${dc.host} supports one-click — for now add the records below.` : 'Your DNS host needs manual setup — add the records below.'}</div>}
-                        <p className="ag-foot ag-dom-hint">Add these TXT records at your DNS host, then tap Verify.</p>
+                        {dc && <div className={`ag-dom-testmsg${dc.supported ? ' ok' : ''}`}>{dc.failed ? 'Couldn’t check your DNS host just now — add the records below.' : dc.applyUrl ? `Opening ${dc.host} to authorize…` : dc.supported ? `✓ ${dc.host} supports one-click — for now add the records below.` : 'Your DNS host needs manual setup — add the records below.'}</div>}
+                        {recs.length > 0 && <p className="ag-foot ag-dom-hint">Add these TXT records at your DNS host, then tap Verify.</p>}
                       </>
                     )}
+                    {!recs.length && !domRecsErr && <p className="ag-foot ag-dom-hint">Loading the DNS records…</p>}
                     <div className="ag-dnr-list">
                       {/* DMARC is optional for verification — dropped from the
                           setup list to keep it to what's actually required.
@@ -2171,7 +2217,7 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         );
                       })}
                     </div>
-                    {!recs.length && domRecsErr && (
+                    {!recs.length && domRecsErr === d.domain && (
                       <button className="ag-send-btn ghost" onClick={() => openDom(d.domain)}>Couldn’t load the records — tap to retry</button>
                     )}
                     {verified && (
@@ -2184,16 +2230,25 @@ export default function AgentsScreen({ connApps, onClose, navRequest, active = t
                         {testMsg[d.domain] && <div className={`ag-dom-testmsg${testMsg[d.domain].includes('✓') ? ' ok' : ''}`}>{testMsg[d.domain]}</div>}
                       </>
                     )}
-                    {domVerErr && <div className="ag-send-err">{domVerErr}</div>}
+                    {domVerErr?.domain === d.domain && <div className="ag-send-err" role="status">{domVerErr.msg}</div>}
                     <div className="ag-dom-actions">
                       {!verified && <button className="ag-send-btn" disabled={domVerifying === d.domain} onClick={() => verifyDom(d.domain)}>{domVerifying === d.domain ? 'Verifying…' : 'Verify'}</button>}
-                      <button className={`ag-send-btn ghost danger${domRmArm === d.domain ? ' armed' : ''}`} onClick={() => armRemove(d.domain)}>{domRmArm === d.domain ? 'Tap again to remove' : 'Remove'}</button>
+                      <button
+                        className={`ag-send-btn ghost danger${domRmArm === d.domain ? ' armed' : ''}`}
+                        aria-live="polite"
+                        aria-label={domRmArm === d.domain ? `Confirm removing ${d.domain} — this permanently deletes the domain and its signing key` : `Remove ${d.domain}`}
+                        onClick={() => armRemove(d.domain)}
+                      >{domRmArm === d.domain ? 'Tap again to remove' : 'Remove'}</button>
                     </div>
                   </div>
                 );
               })() : (
               <div className="ag-compose">
-                {domains.length === 0 ? (
+                {!domsLoaded ? (
+                  <p className="ag-foot ag-dom-hint">Loading your domains…</p>
+                ) : domsErr && domains.length === 0 ? (
+                  <button className="ag-send-btn ghost" onClick={() => { tap(); loadDomains(); }}>Couldn’t load your domains — tap to retry</button>
+                ) : domains.length === 0 ? (
                   <div className="ag-dom-empty">
                     <div className="ag-dom-empty-ic"><IconGlobe size={32} /></div>
                     <div className="ag-dom-empty-ttl">Your sending domain</div>

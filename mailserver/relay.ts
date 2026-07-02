@@ -9,13 +9,18 @@
 // MAILER_RELAY_TOKEN. Bind to localhost and put Caddy in front for TLS (see
 // Caddyfile) so the token only ever travels over HTTPS.
 //
-// Run:  deno run --allow-net --allow-env --allow-run=/usr/sbin/sendmail relay.ts
+// Run:  deno run --allow-net --allow-env --allow-run=/usr/sbin/sendmail \
+//         --allow-read=/etc/opendkim/key.table relay.ts
 // (systemd unit: gofarther-relay.service)
 
 const RELAY_TOKEN = Deno.env.get("RELAY_TOKEN") ?? "";
 const BIND = Deno.env.get("RELAY_BIND") ?? "127.0.0.1";
 const PORT = Number(Deno.env.get("RELAY_PORT") ?? "8025");
 const SENDMAIL = Deno.env.get("SENDMAIL") ?? "/usr/sbin/sendmail";
+// OpenDKIM's key table (written by keysync). Used to REFUSE sends for a domain
+// whose key isn't installed yet — otherwise the message goes out unsigned and
+// lands in spam, silently. Empty value disables the gate.
+const KEY_TABLE = Deno.env.get("KEY_TABLE") ?? "/etc/opendkim/key.table";
 
 if (!RELAY_TOKEN) {
   console.error("RELAY_TOKEN is required");
@@ -136,6 +141,30 @@ function buildMime(b: Required<Pick<SendBody, "from" | "to" | "subject">> & Send
   return { raw: `${headers.join("\r\n")}\r\n\r\n${mimeBody}`, id, envFrom };
 }
 
+// Can OpenDKIM sign for this domain right now? The key table's lines look like
+// "s1._domainkey.acme.com acme.com:s1:/etc/opendkim/keys/acme.com/s1.private".
+// Cached briefly — this runs on every send.
+let ktCache: { at: number; text: string } | null = null;
+async function canSignFor(domain: string): Promise<boolean> {
+  if (!KEY_TABLE) return true;
+  try {
+    if (!ktCache || Date.now() - ktCache.at > 5000) {
+      ktCache = { at: Date.now(), text: await Deno.readTextFile(KEY_TABLE) };
+    }
+  } catch { return true; }  // unreadable table: don't block sending on the gate itself
+  const needle = ` ${domain.toLowerCase()}:`;
+  return ktCache.text.toLowerCase().split("\n").some((l) => l.includes(needle));
+}
+
+// Recently seen idempotency keys -> the Message-ID we minted for them. The edge
+// function retries on timeout; without this a retry after a send that actually
+// went through delivers the recipient a duplicate copy.
+const idemSeen = new Map<string, string>();
+function idemRemember(key: string, id: string) {
+  idemSeen.set(key, id);
+  if (idemSeen.size > 2000) idemSeen.delete(idemSeen.keys().next().value as string);
+}
+
 async function inject(raw: string, envFrom: string): Promise<{ ok: boolean; err?: string }> {
   try {
     const child = new Deno.Command(SENDMAIL, {
@@ -167,12 +196,29 @@ Deno.serve({ hostname: BIND, port: PORT }, async (req: Request) => {
   if (!b.from || !b.to || !b.subject || (!b.html && !b.text)) {
     return Response.json({ error: "from, to, subject and html|text are required" }, { status: 400 });
   }
+
+  // Same idempotency key already accepted → return the original id, don't re-send.
+  const idemKey = (req.headers.get("x-idempotency-key") || "").trim().slice(0, 128);
+  if (idemKey && idemSeen.has(idemKey)) {
+    return Response.json({ id: idemSeen.get(idemKey), dedup: true });
+  }
+
   const { raw, id, envFrom } = buildMime(b as Required<Pick<SendBody, "from" | "to" | "subject">> & SendBody);
+
+  // Refuse (retryable 409) while keysync hasn't installed this domain's key yet —
+  // an unsigned send would silently land in spam.
+  const fromDomain = envFrom.split("@")[1] || "";
+  if (fromDomain && !(await canSignFor(fromDomain))) {
+    console.error("no signing key yet for", fromDomain);
+    return Response.json({ error: `the signing key for ${fromDomain} isn't installed on the mail server yet — it syncs within ~2 minutes of verification, try again shortly` }, { status: 409 });
+  }
+
   const res = await inject(raw, envFrom);
   if (!res.ok) {
     console.error("inject failed:", res.err);
-    return Response.json({ error: "send_failed" }, { status: 502 });
+    return Response.json({ error: `send_failed: ${(res.err || "sendmail error").slice(0, 200)}` }, { status: 502 });
   }
+  if (idemKey) idemRemember(idemKey, id);
   console.log("sent", id, "->", bareAddr(b.to));
   return Response.json({ id });
 });

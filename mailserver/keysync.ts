@@ -56,6 +56,7 @@ async function main() {
 
   const keyTableLines: string[] = [];
   const signingTableLines: string[] = [];
+  const wanted = new Set<string>(); // domains that should exist under KEYS_DIR
   let changed = false;
 
   for (const k of keys) {
@@ -63,6 +64,13 @@ async function main() {
       console.error("skipping malformed row:", k.domain, k.selector);
       continue;
     }
+    if (wanted.has(k.domain)) {
+      // Two tenants exporting the same domain would flip-flop the key file every
+      // tick and break DKIM for both — keep the first (deterministic: sorted).
+      console.error("skipping duplicate domain row:", k.domain);
+      continue;
+    }
+    wanted.add(k.domain);
     const dir = `${KEYS_DIR}/${k.domain}`;
     const keyPath = `${dir}/${k.selector}.private`;
     const pem = k.private_pem.trim() + "\n";
@@ -74,6 +82,17 @@ async function main() {
     keyTableLines.push(`${k.selector}._domainkey.${k.domain} ${k.domain}:${k.selector}:${keyPath}`);
     signingTableLines.push(`*@${k.domain} ${k.selector}._domainkey.${k.domain}`);
   }
+
+  // Removed/un-verified domains: their private keys must not linger on disk.
+  try {
+    for await (const entry of Deno.readDir(KEYS_DIR)) {
+      if (entry.isDirectory && !wanted.has(entry.name)) {
+        await Deno.remove(`${KEYS_DIR}/${entry.name}`, { recursive: true });
+        console.log("removed stale key dir:", entry.name);
+        changed = true;
+      }
+    }
+  } catch { /* KEYS_DIR may not exist yet on a fresh box */ }
 
   const keyTable = keyTableLines.join("\n") + (keyTableLines.length ? "\n" : "");
   const signingTable = signingTableLines.join("\n") + (signingTableLines.length ? "\n" : "");
