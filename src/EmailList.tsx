@@ -39,7 +39,8 @@ export interface EmailMessage {
 // Which mailbox a card belongs to. The post-processor stamps `app` on the card;
 // if it's missing we infer from the message-id shape (Gmail ids are short hex,
 // Outlook ids are long) so the theme + reader routing are never wrong.
-function providerOf(app?: string, id?: string): 'gmail' | 'outlook' {
+// eslint-disable-next-line react-refresh/only-export-components
+export function providerOf(app?: string, id?: string): 'gmail' | 'outlook' {
   if (app === 'gmail' || app === 'outlook') return app;
   if (id && !/^[0-9a-f]{10,24}$/i.test(id)) return 'outlook';
   return 'gmail';
@@ -137,7 +138,9 @@ export function EmailList({ items, onOpen, badges, selectedId }: { items: EmailI
         const prov = providerOf(it.app, it.id); // per-row, so a combined inbox badges each mailbox
         return (
         <div
-          key={i}
+          // Stable key: index keys leak Avatar failure state between senders when
+          // "Load older" re-sorts the merged feed.
+          key={it.id || `${it.from}|${it.subject}|${it.ts ?? i}`}
           className={`gf-email gf-p-${prov} ${it.unread ? 'unread' : ''}${onOpen ? ' tappable' : ''}${selectedId && it.id === selectedId ? ' sel' : ''}`}
           onClick={onOpen ? () => onOpen(it) : undefined}
           role={onOpen ? 'button' : undefined}
@@ -384,6 +387,9 @@ const FRAME_INJECT =
 function dangerScheme(v: string): boolean {
   const s = v
     .replace(/&colon;?/gi, ':')
+    // Named whitespace entities the browser strips from a scheme
+    // (`java&Tab;script:` → `javascript:`) — decode before the whitespace strip.
+    .replace(/&(tab|newline|nbsp|#xa|#xd|#x9|#10|#13|#9);?/gi, ' ')
     .replace(/&#x([0-9a-f]+);?/gi, (_m, h) => { try { return String.fromCharCode(parseInt(h, 16)); } catch { return ''; } })
     .replace(/&#(\d+);?/g, (_m, d) => { try { return String.fromCharCode(parseInt(d, 10)); } catch { return ''; } })
     .replace(/[\s-]+/g, '')
@@ -394,9 +400,15 @@ function neutralizeHrefs(html: string): string {
   return html.replace(/(\bhref\s*=\s*)("([^"]*)"|'([^']*)'|([^\s>]+))/gi, (m, pre, _all, dq, sq, uq) =>
     dangerScheme(dq ?? sq ?? uq ?? '') ? `${pre}"#"` : m);
 }
+// Strip <meta http-equiv="refresh"> — CSP default-src 'none' does NOT govern a
+// same-document navigation, so a refresh meta could replace the email body with
+// an arbitrary remote page (a phishing/spoof surface) inside the reader chrome.
+function stripMetaRefresh(html: string): string {
+  return html.replace(/<meta\b[^>]*http-equiv\s*=\s*["']?\s*refresh[^>]*>/gi, '');
+}
 // eslint-disable-next-line react-refresh/only-export-components
 export function buildSrcDoc(doc0: string): string {
-  const doc = neutralizeHrefs(doc0);
+  const doc = stripMetaRefresh(neutralizeHrefs(doc0));
   if (!/<html[\s>]/i.test(doc)) return FRAME_HEAD + doc + FRAME_FOOT;
   if (/<head[\s>]/i.test(doc)) return doc.replace(/<head([^>]*)>/i, (m) => m + FRAME_INJECT);
   return doc.replace(/<html([^>]*)>/i, (m) => m + '<head>' + FRAME_INJECT + '</head>');
@@ -580,6 +592,10 @@ export function EmailDetail({ msg, onMeta }: { msg: EmailMessage; onMeta?: (m: E
   // real message by id and fill any header field it didn't provide, so the card
   // is complete for every email.
   const [meta, setMeta] = useState<EmailMeta>({});
+  // Reset meta when the open message changes — the component stays mounted in
+  // the split-pane reader, so without this, clicking B shows A's To:/date until
+  // (and permanently if) B's fetch fails.
+  useEffect(() => { setMeta({}); }, [msg.id]);
   // Seed from the tapped list row (if we have it) so the header shows instantly,
   // before the full message body finishes loading.
   const hint: Partial<EmailMessage> = (msg.id && emailHints.get(msg.id)) || {};
